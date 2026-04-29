@@ -1,0 +1,334 @@
+{
+  "communities": [
+    {
+      "id": "shibuya-hub",
+      "name": "Shibuya Future Lab",
+      "subtitle": "学生・地域・留学生をつなぐ実験コミュニティ",
+      "description": "新規参加者が入りやすく、分断された小さな集まり同士を自然につなげることを目指すコミュニティです。"
+    },
+    {
+      "id": "campus-commons",
+      "name": "Campus Commons",
+      "subtitle": "研究室・サークル・自治体連携の横断コミュニティ",
+      "description": "研究、イベント運営、地域連携を横断しながら、学内外の接点を増やしていくためのコミュニティです。"
+    }
+  ],
+  "accounts": [
+    {
+      "id": "account-miu-manager",
+      "username": "miu.manager",
+      "password": "demo1234",
+      "role": "manager",
+      "displayName": "美羽 / Shibuya責任者",
+      "communityId": "shibuya-hub",
+      "userId": "shib-miu",
+      "demoNote": "Shibuya Future Lab を管理する責任者アカウント"
+    },
+    {
+      "id": "account-nao-manager",
+      "username": "nao.manager",
+      "password": "demo1234",
+      "role": "manager",
+      "displayName": "直 / Campus責任者",
+      "communityId": "campus-commons",
+      "userId": "camp-nao",
+      "demoNote": "Campus Commons を管理する責任者アカウント"
+    },
+    {
+      "id": "account-aoi-member",
+      "username": "aoi",
+      "password": "demo1234",
+      "role": "member",
+      "displayName": "葵",
+      "communityId": "shibuya-hub",
+      "userId": "shib-aoi",
+      "demoNote": "新規参加者としておすすめ接続を見るユーザーアカウント"
+    },
+    {
+      "id": "account-sara-member",
+      "username": "sara",
+      "password": "demo1234",
+      "role": "member",
+      "displayName": "Sara",
+      "communityId": "shibuya-hub",
+      "userId": "shib-sara",
+      "demoNote": "橋渡し候補として使えるユーザーアカウント"
+    },
+    {
+      "id": "account-takumi-member",
+      "username": "takumi",
+      "password": "demo1234",
+      "role": "member",
+      "displayName": "匠",
+      "communityId": "campus-commons",
+      "userId": "camp-takumi",
+      "demoNote": "研究室側の新規参加ユーザーアカウント"
+    }
+  ],
+  "users": [
+    {
+      "id": "shib-aoi",
+      "communityId": "shibuya-hub",
+      "name": "葵",
+      "group": "newcomer",
+      "role": "new",
+      "availability": "平日昼",
+      "bio": "新入生。まだ知り合いが少なく、デザイン系の会話ができる仲間を探している。",
+      "interests": ["UI/UX", "カフェ", "写真"],
+      "goals": ["友達を増やしたい", "デザイン仲間と話したい"],
+      "activityTags": ["昼に動く", "雑談しやすい", "初参加"]
+    },
+    {
+      "id": "shib-miu",
+      "communityId": "shibuya-hub",
+      "name": "美羽",
+      "group": "design",
+      "role": "core",
+      "availability": "平日夜",
+      "bio": "デザインと場づくりが得意。新規参加者のオンボーディングにも前向き。",
+      "interests": ["UI/UX", "イベント運営", "発表"],
+      "goals": ["新しいメンバーを迎えたい", "企画仲間がほしい"],
+      "activityTags": ["夜に動く", "まとめ役", "相談に乗る"]
+    },
+    {
+      "id": "shib-ken",
+      "communityId": "shibuya-hub",
+      "name": "健",
+      "group": "local",
+      "role": "bridge",
+      "availability": "土日昼",
+      "bio": "地域イベントの実務を回している学生。商店街との接点が多い。",
+      "interests": ["地域イベント", "食", "企画"],
+      "goals": ["学外の人とつなぎたい", "イベントを大きくしたい"],
+      "activityTags": ["土日に動く", "現場が得意", "フットワーク軽い"]
+    },
+    {
+      "id": "shib-sara",
+      "communityId": "shibuya-hub",
+      "name": "Sara",
+      "group": "international",
+      "role": "bridge",
+      "availability": "平日昼",
+      "bio": "留学生コミュニティ側のハブ。日本語と英語の両方で会話できる。",
+      "interests": ["言語交換", "食", "写真"],
+      "goals": ["日本人学生と話したい", "交流イベントを増やしたい"],
+      "activityTags": ["昼に動く", "国際交流", "初対面に強い"]
+    },
+    {
+      "id": "shib-leo",
+      "communityId": "shibuya-hub",
+      "name": "玲央",
+      "group": "tech",
+      "role": "core",
+      "availability": "平日夜",
+      "bio": "技術実装担当。ハッカソンやプロトタイプづくりが好き。",
+      "interests": ["実装", "ハッカソン", "AI"],
+      "goals": ["企画できる人と組みたい", "デモを強くしたい"],
+      "activityTags": ["夜に動く", "実装が速い", "集中型"]
+    },
+    {
+      "id": "shib-mei",
+      "communityId": "shibuya-hub",
+      "name": "芽衣",
+      "group": "community",
+      "role": "new",
+      "availability": "土日昼",
+      "bio": "コミュニティ運営に興味があるが、まだ輪の中に入り切れていない。",
+      "interests": ["コミュニティ", "食", "雑談会"],
+      "goals": ["場づくりを学びたい", "先輩と話したい"],
+      "activityTags": ["土日に動く", "メモが丁寧", "聞き役"]
+    },
+    {
+      "id": "shib-riku",
+      "communityId": "shibuya-hub",
+      "name": "陸",
+      "group": "media",
+      "role": "isolated",
+      "availability": "平日夜",
+      "bio": "映像編集が得意。作品づくりには強いが、人との接点は少なめ。",
+      "interests": ["映像", "音楽", "発表"],
+      "goals": ["作品を見せたい", "一緒に作る仲間がほしい"],
+      "activityTags": ["夜に動く", "一人作業が多い", "制作集中"]
+    },
+    {
+      "id": "camp-nao",
+      "communityId": "campus-commons",
+      "name": "直",
+      "group": "research",
+      "role": "core",
+      "availability": "平日昼",
+      "bio": "研究室と自治体案件をまたいで動いている。学内外の事情に詳しい。",
+      "interests": ["研究", "自治体連携", "資料作成"],
+      "goals": ["研究を社会実装したい", "外部連携を増やしたい"],
+      "activityTags": ["昼に動く", "調整が得意", "資料化が速い"]
+    },
+    {
+      "id": "camp-hana",
+      "communityId": "campus-commons",
+      "name": "花",
+      "group": "event",
+      "role": "bridge",
+      "availability": "土日昼",
+      "bio": "交流イベントの運営が得意。初対面の人を自然につなげるのが上手い。",
+      "interests": ["イベント運営", "場づくり", "食"],
+      "goals": ["研究室の人とも話したい", "コミュニティを広げたい"],
+      "activityTags": ["土日に動く", "巻き込みが得意", "明るい"]
+    },
+    {
+      "id": "camp-jun",
+      "communityId": "campus-commons",
+      "name": "潤",
+      "group": "tech",
+      "role": "core",
+      "availability": "平日夜",
+      "bio": "プロトタイプ実装とデータ可視化が得意。話すより作る方が得意。",
+      "interests": ["実装", "データ可視化", "ハッカソン"],
+      "goals": ["企画側と組みたい", "研究アイデアを形にしたい"],
+      "activityTags": ["夜に動く", "実装集中", "論理派"]
+    },
+    {
+      "id": "camp-emi",
+      "communityId": "campus-commons",
+      "name": "恵美",
+      "group": "local",
+      "role": "isolated",
+      "availability": "平日昼",
+      "bio": "地域連携の手伝いをしているが、学内の人脈はまだ少ない。",
+      "interests": ["地域連携", "高齢者支援", "まち歩き"],
+      "goals": ["学生と接点を増やしたい", "イベントに参加したい"],
+      "activityTags": ["昼に動く", "現場志向", "初参加"]
+    },
+    {
+      "id": "camp-takumi",
+      "communityId": "campus-commons",
+      "name": "匠",
+      "group": "research",
+      "role": "new",
+      "availability": "平日夜",
+      "bio": "研究室に入ったばかり。イベント運営にも少し興味がある。",
+      "interests": ["研究", "データ可視化", "発表"],
+      "goals": ["研究室外の人と話したい", "発表機会を増やしたい"],
+      "activityTags": ["夜に動く", "慎重派", "新規参加"]
+    },
+    {
+      "id": "camp-yuna",
+      "communityId": "campus-commons",
+      "name": "結菜",
+      "group": "community",
+      "role": "bridge",
+      "availability": "土日昼",
+      "bio": "サークルと学生広報をまたいでいる。話題を広げるのが得意。",
+      "interests": ["広報", "コミュニティ", "写真"],
+      "goals": ["研究室の活動をもっと広めたい", "外の人を呼びたい"],
+      "activityTags": ["土日に動く", "広報向き", "話題づくり"]
+    }
+  ],
+  "relationships": [
+    {
+      "id": "rel-shib-1",
+      "communityId": "shibuya-hub",
+      "fromUserId": "shib-miu",
+      "toUserId": "shib-ken",
+      "type": "project",
+      "strength": 4,
+      "note": "地域イベントの企画を一緒に進めている"
+    },
+    {
+      "id": "rel-shib-2",
+      "communityId": "shibuya-hub",
+      "fromUserId": "shib-miu",
+      "toUserId": "shib-leo",
+      "type": "project",
+      "strength": 4,
+      "note": "ハッカソンのプロトタイプを一緒に作っている"
+    },
+    {
+      "id": "rel-shib-3",
+      "communityId": "shibuya-hub",
+      "fromUserId": "shib-ken",
+      "toUserId": "shib-sara",
+      "type": "event",
+      "strength": 3,
+      "note": "交流イベントで話したことがある"
+    },
+    {
+      "id": "rel-shib-4",
+      "communityId": "shibuya-hub",
+      "fromUserId": "shib-sara",
+      "toUserId": "shib-mei",
+      "type": "talked",
+      "strength": 2,
+      "note": "雑談会で隣になった"
+    },
+    {
+      "id": "rel-camp-1",
+      "communityId": "campus-commons",
+      "fromUserId": "camp-nao",
+      "toUserId": "camp-hana",
+      "type": "project",
+      "strength": 4,
+      "note": "自治体連携イベントの準備を一緒に進めている"
+    },
+    {
+      "id": "rel-camp-2",
+      "communityId": "campus-commons",
+      "fromUserId": "camp-nao",
+      "toUserId": "camp-jun",
+      "type": "project",
+      "strength": 3,
+      "note": "研究データの可視化で相談している"
+    },
+    {
+      "id": "rel-camp-3",
+      "communityId": "campus-commons",
+      "fromUserId": "camp-hana",
+      "toUserId": "camp-yuna",
+      "type": "event",
+      "strength": 4,
+      "note": "学生向け交流イベントを共同運営している"
+    },
+    {
+      "id": "rel-camp-4",
+      "communityId": "campus-commons",
+      "fromUserId": "camp-jun",
+      "toUserId": "camp-takumi",
+      "type": "known",
+      "strength": 2,
+      "note": "研究室の勉強会で顔見知り"
+    }
+  ],
+  "events": [
+    {
+      "id": "event-shib-1",
+      "communityId": "shibuya-hub",
+      "title": "商店街ミニ交流会",
+      "time": "5/02 18:30",
+      "format": "軽食つきのカジュアル交流会",
+      "participants": ["shib-ken", "shib-sara", "shib-mei"]
+    },
+    {
+      "id": "event-shib-2",
+      "communityId": "shibuya-hub",
+      "title": "デモづくり夜会",
+      "time": "5/04 20:00",
+      "format": "実装と発表練習を同時に進める制作会",
+      "participants": ["shib-miu", "shib-leo", "shib-riku"]
+    },
+    {
+      "id": "event-camp-1",
+      "communityId": "campus-commons",
+      "title": "Campus Data Meetup",
+      "time": "5/06 17:00",
+      "format": "研究と実装の進捗共有会",
+      "participants": ["camp-nao", "camp-jun", "camp-takumi"]
+    },
+    {
+      "id": "event-camp-2",
+      "communityId": "campus-commons",
+      "title": "地域連携ランチ",
+      "time": "5/08 12:00",
+      "format": "学生と地域連携メンバーの少人数ランチ",
+      "participants": ["camp-hana", "camp-emi", "camp-yuna"]
+    }
+  ]
+}

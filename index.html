@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Connect Graph App</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <div class="ambient ambient-left"></div>
+      <div class="ambient ambient-right"></div>
+
+      <section class="auth-screen" id="authScreen">
+        <div class="auth-card">
+          <div class="auth-copy">
+            <p class="eyebrow">Connect Graph / Demo Login</p>
+            <h1>責任者画面とユーザー画面を、ログインで分ける。</h1>
+            <p class="subcopy">
+              このデモでは、責任者アカウントはコミュニティ全体を編集でき、
+              ユーザーアカウントは自分向けのおすすめやプロフィール編集を中心に使えます。
+            </p>
+          </div>
+
+          <div class="auth-notice" id="authNotice"></div>
+
+          <div class="auth-layout">
+            <form class="panel auth-form" id="loginForm">
+              <div class="section-head compact">
+                <p class="section-kicker">Sign In</p>
+                <h2>ログイン</h2>
+              </div>
+              <label class="field">
+                <span>ユーザー名</span>
+                <input name="username" type="text" placeholder="例: aoi / miu.manager" autocomplete="username" />
+              </label>
+              <label class="field">
+                <span>パスワード</span>
+                <input name="password" type="password" placeholder="demo1234" autocomplete="current-password" />
+              </label>
+              <button class="primary-button full" type="submit">ログインする</button>
+            </form>
+
+            <div class="panel auth-demo-panel">
+              <div class="section-head compact">
+                <p class="section-kicker">Demo Accounts</p>
+                <h2>ワンクリックログイン</h2>
+              </div>
+              <div class="auth-account-grid" id="demoAccountList"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div id="appShell" hidden>
+        <header class="topbar">
+          <div class="topbar-copy">
+            <p class="eyebrow">Connect Graph / つながりOS</p>
+            <h1 id="topbarHeadline">コミュニティの関係性を、実際に動かせるアプリにする。</h1>
+            <p class="subcopy" id="topbarSubcopy"></p>
+          </div>
+          <div class="header-actions">
+            <span class="status-badge" id="sessionBadge">Loading...</span>
+            <span class="status-badge" id="storageBadge">Loading...</span>
+            <button class="ghost-button" id="resetDataButton">JSONに戻す</button>
+            <button class="ghost-button" id="logoutButton">ログアウト</button>
+          </div>
+        </header>
+
+        <div class="app-notice" id="appNotice"></div>
+
+        <main class="app-layout">
+          <aside class="panel sidebar">
+            <section>
+              <div class="section-head compact">
+                <p class="section-kicker">Communities</p>
+                <h2 id="communitySectionTitle">コミュニティ</h2>
+              </div>
+              <div class="community-list" id="communityList"></div>
+            </section>
+
+            <section>
+              <div class="section-head compact">
+                <p class="section-kicker">Members</p>
+                <h2 id="memberSectionTitle">メンバー一覧</h2>
+              </div>
+              <label class="field">
+                <span>検索</span>
+                <input id="memberSearchInput" type="search" placeholder="名前・興味・目的で検索" />
+              </label>
+              <div class="member-list" id="memberList"></div>
+            </section>
+          </aside>
+
+          <section class="workspace">
+            <section class="panel hero-card">
+              <div>
+                <p class="section-kicker" id="heroKicker">Interactive MVP</p>
+                <h2 id="communityHeadline">コミュニティを読み込み中...</h2>
+                <p class="hero-copy" id="communityDescription"></p>
+              </div>
+              <div class="hero-tags">
+                <span class="pill">JSONシードデータ</span>
+                <span class="pill">GPSなし</span>
+                <span class="pill">フォーム操作で即反映</span>
+                <span class="pill">localStorage保存</span>
+              </div>
+            </section>
+
+            <section class="stats-grid" id="overviewStats"></section>
+
+            <section class="panel graph-panel">
+              <div class="panel-header">
+                <div>
+                  <p class="section-kicker">Network</p>
+                  <h2 id="graphTitle">ネットワーク可視化</h2>
+                </div>
+                <div class="legend">
+                  <span><i class="legend-dot dot-core"></i>中心人物</span>
+                  <span><i class="legend-dot dot-new"></i>新規参加</span>
+                  <span><i class="legend-dot dot-bridge"></i>橋渡し候補</span>
+                  <span><i class="legend-dot dot-isolated"></i>孤立気味</span>
+                </div>
+              </div>
+              <div class="graph-shell">
+                <svg id="graphCanvas" viewBox="0 0 860 480" aria-label="コミュニティの関係性グラフ"></svg>
+              </div>
+            </section>
+
+            <div class="grid-two">
+              <section class="panel">
+                <div class="panel-header">
+                  <div>
+                    <p class="section-kicker">Analytics</p>
+                    <h2 id="analyticsTitle">接続不足の分析</h2>
+                  </div>
+                </div>
+                <div class="analytics-grid" id="analyticsGrid"></div>
+                <div class="split-list">
+                  <div>
+                    <h3 id="analyticsPrimaryLabel">クラスタ</h3>
+                    <div class="token-list" id="clusterList"></div>
+                  </div>
+                  <div>
+                    <h3 id="analyticsSecondaryLabel">孤立気味のメンバー</h3>
+                    <div class="token-list" id="isolatedList"></div>
+                  </div>
+                </div>
+              </section>
+
+              <section class="panel">
+                <div class="panel-header">
+                  <div>
+                    <p class="section-kicker">Recommendations</p>
+                    <h2 id="recommendationTitle">おすすめ接続</h2>
+                  </div>
+                  <div class="mode-switcher" id="modeSwitcher"></div>
+                </div>
+                <div class="recommendation-list" id="recommendationList"></div>
+              </section>
+            </div>
+
+            <div class="grid-two">
+              <section class="panel">
+                <div class="panel-header">
+                  <div>
+                    <p class="section-kicker">Introductions</p>
+                    <h2 id="introductionTitle">自然な接点の提案</h2>
+                  </div>
+                </div>
+                <div class="recommendation-list" id="introductionList"></div>
+              </section>
+
+              <section class="panel">
+                <div class="panel-header">
+                  <div>
+                    <p class="section-kicker">Events</p>
+                    <h2 id="eventTitle">コミュニティイベント</h2>
+                  </div>
+                </div>
+                <div class="event-list" id="eventList"></div>
+              </section>
+            </div>
+          </section>
+
+          <aside class="inspector">
+            <section class="panel sticky-panel">
+              <div class="section-head compact">
+                <p class="section-kicker">Selected User</p>
+                <h2 id="selectedProfileTitle">ユーザープロフィール</h2>
+              </div>
+              <div id="selectedUserSummary"></div>
+              <div id="selectedUserMeta"></div>
+            </section>
+
+            <section class="panel">
+              <div class="section-head compact">
+                <p class="section-kicker">Edit Profile</p>
+                <h2 id="profileFormTitle">プロフィール編集</h2>
+              </div>
+              <p class="inline-note" id="profileFormNote"></p>
+              <form class="form-grid" id="profileForm">
+                <label class="field">
+                  <span>名前</span>
+                  <input name="name" type="text" />
+                </label>
+                <label class="field">
+                  <span>所属グループ</span>
+                  <input name="group" type="text" />
+                </label>
+                <label class="field">
+                  <span>ロール</span>
+                  <select name="role">
+                    <option value="core">中心人物</option>
+                    <option value="new">新規参加</option>
+                    <option value="bridge">橋渡し候補</option>
+                    <option value="isolated">孤立気味</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>活動時間帯</span>
+                  <input name="availability" type="text" placeholder="例: 平日夜 / 土日昼" />
+                </label>
+                <label class="field full">
+                  <span>自己紹介</span>
+                  <textarea name="bio" rows="4"></textarea>
+                </label>
+                <label class="field full">
+                  <span>興味・関心（カンマ区切り）</span>
+                  <input name="interests" type="text" />
+                </label>
+                <label class="field full">
+                  <span>つながりたい目的（カンマ区切り）</span>
+                  <input name="goals" type="text" />
+                </label>
+                <label class="field full">
+                  <span>活動タグ（カンマ区切り）</span>
+                  <input name="activityTags" type="text" />
+                </label>
+                <button class="primary-button full" id="profileSaveButton" type="submit">プロフィールを保存</button>
+              </form>
+            </section>
+
+            <section class="panel">
+              <div class="section-head compact">
+                <p class="section-kicker">Relationships</p>
+                <h2 id="relationshipTitle">つながりを追加</h2>
+              </div>
+              <p class="inline-note" id="relationshipFormNote"></p>
+              <form class="form-grid" id="relationshipForm">
+                <label class="field full">
+                  <span>つなげる相手</span>
+                  <select name="targetUserId" id="targetUserSelect"></select>
+                </label>
+                <label class="field">
+                  <span>関係の種類</span>
+                  <select name="type">
+                    <option value="known">知っている</option>
+                    <option value="talked">話したことがある</option>
+                    <option value="event">同じイベントに出た</option>
+                    <option value="project">一緒に企画した</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>強さ</span>
+                  <select name="strength">
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3" selected>3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                  </select>
+                </label>
+                <label class="field full">
+                  <span>メモ</span>
+                  <input name="note" type="text" placeholder="例: 同じ企画会議で知り合った" />
+                </label>
+                <button class="secondary-button full" id="relationshipSubmitButton" type="submit">つながりを追加</button>
+              </form>
+              <div class="relationship-list" id="relationshipList"></div>
+            </section>
+
+            <section class="panel" id="createUserPanel">
+              <div class="section-head compact">
+                <p class="section-kicker">Add Dummy User</p>
+                <h2>ダミーユーザー追加</h2>
+              </div>
+              <form class="form-grid" id="createUserForm">
+                <label class="field">
+                  <span>名前</span>
+                  <input name="name" type="text" placeholder="例: すず" required />
+                </label>
+                <label class="field">
+                  <span>所属グループ</span>
+                  <input name="group" type="text" placeholder="例: newcomer / local / tech" required />
+                </label>
+                <label class="field">
+                  <span>ロール</span>
+                  <select name="role">
+                    <option value="new">新規参加</option>
+                    <option value="core">中心人物</option>
+                    <option value="bridge">橋渡し候補</option>
+                    <option value="isolated">孤立気味</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>活動時間帯</span>
+                  <input name="availability" type="text" placeholder="例: 平日昼" />
+                </label>
+                <label class="field full">
+                  <span>自己紹介</span>
+                  <textarea name="bio" rows="3" placeholder="参加理由や得意なこと"></textarea>
+                </label>
+                <label class="field full">
+                  <span>興味・関心（カンマ区切り）</span>
+                  <input name="interests" type="text" placeholder="例: デザイン, カフェ, 地域イベント" />
+                </label>
+                <label class="field full">
+                  <span>つながりたい目的（カンマ区切り）</span>
+                  <input name="goals" type="text" placeholder="例: 友達を増やしたい, 企画仲間がほしい" />
+                </label>
+                <label class="field full">
+                  <span>活動タグ（カンマ区切り）</span>
+                  <input name="activityTags" type="text" placeholder="例: 夜に動く, 雑談しやすい" />
+                </label>
+                <button class="primary-button full" type="submit">ユーザーを追加</button>
+              </form>
+            </section>
+          </aside>
+        </main>
+      </div>
+    </div>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
