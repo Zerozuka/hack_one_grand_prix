@@ -46,10 +46,55 @@ const uiState = {
   memberSearch: "",
   courseSearch: "",
   source: "json",
+  sosList: [],
 };
+
+// D3 force graph state (module-level to persist across renderApp calls)
+let _graphSim = null;
+let _graphKey = null;
+
+// SOS broadcast channel
+let _sosBroadcast = null;
+
+// Semantic synonym map for Japanese academic keywords
+const SYNONYM_MAP = {
+  "機械学習": ["ML", "深層学習", "ニューラルネット", "ニューラルネットワーク", "AI", "人工知能", "統計学習", "パターン認識"],
+  "線形代数": ["ベクトル", "行列", "固有値", "固有ベクトル", "線形方程式", "行列式", "ベクトル空間"],
+  "微分": ["解析", "微積分", "偏微分", "関数解析", "積分", "微分方程式"],
+  "アルゴリズム": ["データ構造", "計算量", "グラフ理論", "探索", "ソート", "動的計画法"],
+  "プログラミング": ["Python", "JavaScript", "C言語", "Java", "コーディング", "実装", "ソフトウェア"],
+  "統計": ["確率", "データ分析", "回帰分析", "推定", "検定", "ベイズ", "確率論"],
+  "物理": ["力学", "電磁気", "熱力学", "量子力学", "光学", "波動"],
+  "数学": ["解析", "代数", "幾何学", "位相", "数論"],
+  "情報工学": ["コンピュータ", "システム", "ネットワーク", "OS", "データベース", "セキュリティ"],
+  "最適化": ["凸最適化", "勾配降下法", "線形計画", "数理計画"],
+  "シミュレーション": ["数値計算", "モンテカルロ", "有限要素法"],
+  "信号処理": ["フーリエ変換", "FFT", "フィルタ", "スペクトル"],
+};
+
+function expandKeywords(keywords) {
+  const expanded = new Set(keywords.map(k => k.toLowerCase()));
+  keywords.forEach(kw => {
+    const lower = kw.toLowerCase();
+    Object.entries(SYNONYM_MAP).forEach(([key, vals]) => {
+      if (key.toLowerCase() === lower || vals.some(v => v.toLowerCase() === lower)) {
+        expanded.add(key.toLowerCase());
+        vals.forEach(v => expanded.add(v.toLowerCase()));
+      }
+      if (lower.includes(key.toLowerCase()) || key.toLowerCase().includes(lower)) {
+        expanded.add(key.toLowerCase());
+      }
+    });
+  });
+  return [...expanded];
+}
 
 function cloneData(value) {
   return JSON.parse(JSON.stringify(value));
+}
+
+function clamp(val, min, max) {
+  return Math.max(min, Math.min(max, val ?? 0));
 }
 
 function escapeHtml(value) {
@@ -298,16 +343,37 @@ function courseMatchingUsers(course) {
     return [];
   }
 
-  const planText = course.lecture_plan.join(" ").toLowerCase() + " " + course.course_title.toLowerCase() + " " + course.contents.toLowerCase();
+  // Build expanded term set from course content (semantic routing)
+  const rawCourseTerms = [
+    course.course_title,
+    course.contents ?? "",
+    ...course.lecture_plan,
+  ].join(" ").split(/[\s、。,・\-]+/).filter(t => t.length >= 2);
+
+  const expandedCourseTerms = expandKeywords(rawCourseTerms);
+  const courseTermSet = new Set(expandedCourseTerms);
 
   return users
     .map((user) => {
-      const matchedInterests = user.interests.filter((interest) => planText.includes(interest.toLowerCase()));
+      const expandedInterests = expandKeywords(user.interests);
+      const matchedInterests = user.interests.filter((interest) =>
+        courseTermSet.has(interest.toLowerCase()) ||
+        expandKeywords([interest]).some(exp => courseTermSet.has(exp))
+      );
+
       const matchedGoals = user.goals.filter((goal) => {
         const keywords = goal.split(/[\s,、]+/).filter((w) => w.length >= 2);
-        return keywords.some((kw) => planText.includes(kw.toLowerCase()));
+        return expandKeywords(keywords).some((kw) => courseTermSet.has(kw));
       });
-      const score = matchedInterests.length * 3 + matchedGoals.length;
+
+      // Semantic score: direct match weighted higher than synonym match
+      const directInterests = user.interests.filter(i => {
+        const planText = [course.course_title, course.contents ?? "", ...course.lecture_plan].join(" ").toLowerCase();
+        return planText.includes(i.toLowerCase());
+      });
+      const semanticBonus = matchedInterests.length - directInterests.length;
+      const score = directInterests.length * 4 + semanticBonus * 2 + matchedGoals.length * 2;
+
       return { user, matchedInterests, matchedGoals, score };
     })
     .filter((entry) => entry.score > 0)
@@ -456,15 +522,21 @@ function recommendationScore(mode, baseUser, candidate) {
   const bridgeBoost = candidate.role === "bridge" ? 1 : 0;
   const roleComplement = baseUser.role !== candidate.role ? 1 : 0;
 
+  // Semantic bonus: expanded keyword overlap even without exact match
+  const baseExpanded = new Set(expandKeywords(baseUser.interests));
+  const candidateExpanded = expandKeywords(candidate.interests);
+  const semanticOverlap = candidateExpanded.filter(k => baseExpanded.has(k)).length;
+  const semanticBonus = Math.min(semanticOverlap, 6);
+
   if (mode === "similar") {
-    return commonInterests * 16 + commonGoals * 12 + sharedAvailability * 8 + isolationSupport * 4;
+    return commonInterests * 16 + commonGoals * 12 + sharedAvailability * 8 + isolationSupport * 4 + semanticBonus * 4;
   }
 
   if (mode === "complementary") {
     return crossGroup * 10 + roleComplement * 12 + commonGoals * 10 + commonInterests * 6 + bridgeBoost * 6;
   }
 
-  return crossGroup * 16 + bridgeBoost * 10 + commonGoals * 8 + commonInterests * 6 + isolationSupport * 8;
+  return crossGroup * 16 + bridgeBoost * 10 + commonGoals * 8 + commonInterests * 6 + isolationSupport * 8 + semanticBonus * 2;
 }
 
 function recommendationReasons(baseUser, candidate) {
@@ -738,6 +810,7 @@ function renderMemberList() {
   list.innerHTML = users.map((user) => {
     const selected = user.id === uiState.selectedUserId;
     const self = actor?.id === user.id;
+    const pts = computeUserPoints(user.id);
     return `
       <button class="member-card ${selected ? "selected" : ""}" data-user-id="${escapeHtml(user.id)}" type="button">
         <span class="member-card-top">
@@ -745,7 +818,10 @@ function renderMemberList() {
           <em>${self ? "あなた" : escapeHtml(roleLabels[user.role] ?? user.role)}</em>
         </span>
         <span>${escapeHtml(groupLabel(user.group))}</span>
-        <small>${escapeHtml(user.availability || "予定未設定")}</small>
+        <span style="display:flex;justify-content:space-between;align-items:center">
+          <small>${escapeHtml(user.availability || "予定未設定")}</small>
+          ${pts > 0 ? `<span class="member-points">${pts}pt</span>` : ""}
+        </span>
       </button>
     `;
   }).join("");
@@ -857,115 +933,180 @@ function renderOverviewStats() {
   `).join("");
 }
 
-function graphPositions() {
+function renderGraph() {
+  const svgEl = document.getElementById("graphCanvas");
+  const actor = actorUser();
   const users = communityUsers();
-  const groups = [...new Set(users.map((user) => user.group))];
-  const positions = new Map();
-  const groupCenters = new Map();
-  const centerX = 430;
-  const centerY = 228;
-  const orbitX = 250;
-  const orbitY = 150;
+  const rels = communityRelationships();
+  const W = 860, H = 480;
 
-  groups.forEach((group, index) => {
-    const angle = (Math.PI * 2 * index) / Math.max(groups.length, 1) - Math.PI / 2;
-    const groupCenter = {
-      x: centerX + Math.cos(angle) * orbitX,
-      y: centerY + Math.sin(angle) * orbitY,
-    };
-    groupCenters.set(group, groupCenter);
+  // Fall back to static layout if D3 not loaded
+  if (typeof d3 === "undefined") {
+    _renderGraphStatic(svgEl, users, rels, actor, W, H);
+    return;
+  }
 
-    const members = users.filter((user) => user.group === group);
-    members.forEach((user, memberIndex) => {
-      const memberAngle = (Math.PI * 2 * memberIndex) / Math.max(members.length, 1);
-      const radius = members.length === 1 ? 0 : 56;
-      positions.set(user.id, {
-        x: groupCenter.x + Math.cos(memberAngle) * radius,
-        y: groupCenter.y + Math.sin(memberAngle) * radius,
+  const key = [
+    uiState.selectedCommunityId,
+    users.map(u => u.id).sort().join(","),
+    rels.map(r => r.id).sort().join(","),
+  ].join("|");
+
+  if (_graphKey !== key) {
+    _graphKey = key;
+    if (_graphSim) _graphSim.stop();
+    svgEl.innerHTML = "";
+
+    const svg = d3.select(svgEl);
+    const edgeLayer = svg.append("g");
+    const nodeLayer = svg.append("g");
+
+    const nodeData = users.map(u => ({ ...u }));
+    const linkData = rels.map(r => ({
+      ...r,
+      source: r.fromUserId,
+      target: r.toUserId,
+    }));
+
+    const edges = edgeLayer.selectAll("line")
+      .data(linkData, d => d.id)
+      .join("line")
+      .attr("class", "edge")
+      .attr("stroke-width", d => Math.max(1, 1 + (d.strength ?? 3) * 0.4));
+
+    const nodeGs = nodeLayer.selectAll("g.node")
+      .data(nodeData, d => d.id)
+      .join("g")
+      .attr("class", "node")
+      .on("click", (event, d) => {
+        uiState.selectedUserId = d.id;
+        renderApp();
+      })
+      .call(
+        d3.drag()
+          .on("start", (event, d) => {
+            if (!event.active) _graphSim?.alphaTarget(0.3).restart();
+            d.fx = d.x; d.fy = d.y;
+          })
+          .on("drag", (event, d) => {
+            d.fx = clamp(event.x, 20, W - 20);
+            d.fy = clamp(event.y, 20, H - 20);
+          })
+          .on("end", (event, d) => {
+            if (!event.active) _graphSim?.alphaTarget(0);
+            d.fx = null; d.fy = null;
+          })
+      );
+
+    nodeGs.append("circle")
+      .attr("class", "node-halo")
+      .attr("r", 26)
+      .attr("fill", "transparent");
+
+    nodeGs.append("circle")
+      .attr("class", "node-circle")
+      .attr("r", 17)
+      .attr("fill", d => roleColor(d.role))
+      .attr("stroke", "rgba(255,255,255,0.84)")
+      .attr("stroke-width", 2);
+
+    nodeGs.append("text")
+      .attr("class", "node-label")
+      .attr("y", 34)
+      .attr("text-anchor", "middle")
+      .text(d => d.name);
+
+    nodeGs.append("text")
+      .attr("class", "node-meta")
+      .attr("y", 50)
+      .attr("text-anchor", "middle")
+      .text(d => roleLabels[d.role] ?? d.role);
+
+    const sim = d3.forceSimulation(nodeData)
+      .force("link", d3.forceLink(linkData).id(d => d.id).distance(100).strength(0.5))
+      .force("charge", d3.forceManyBody().strength(-240))
+      .force("center", d3.forceCenter(W / 2, H / 2))
+      .force("collision", d3.forceCollide(30))
+      .force("x", d3.forceX(W / 2).strength(0.04))
+      .force("y", d3.forceY(H / 2).strength(0.04))
+      .on("tick", () => {
+        edges
+          .attr("x1", d => clamp(d.source.x, 20, W - 20))
+          .attr("y1", d => clamp(d.source.y, 20, H - 20))
+          .attr("x2", d => clamp(d.target.x, 20, W - 20))
+          .attr("y2", d => clamp(d.target.y, 20, H - 20));
+
+        nodeGs.attr("transform", d => `translate(${clamp(d.x, 20, W - 20)},${clamp(d.y, 20, H - 20)})`);
       });
-    });
-  });
 
-  return { positions, groupCenters };
+    _graphSim = sim;
+  }
+
+  // Update highlights without rebuilding (every renderApp call)
+  d3.select(svgEl).selectAll("g.node").each(function(d) {
+    const sel = d3.select(this);
+    const isActor = actor?.id === d.id;
+    const isSelected = d.id === uiState.selectedUserId;
+
+    sel.select(".node-circle")
+      .attr("stroke", isActor ? "#c65b4b" : isSelected ? "#1b160f" : "rgba(255,255,255,0.84)")
+      .attr("stroke-width", isActor || isSelected ? 3 : 2)
+      .attr("r", isSelected ? 20 : 17);
+
+    sel.select(".node-halo")
+      .attr("fill", isActor ? "rgba(198,91,75,0.10)" : isSelected ? "rgba(28,107,90,0.08)" : "transparent");
+  });
 }
 
-function renderGraph() {
-  const svg = document.getElementById("graphCanvas");
-  svg.innerHTML = "";
-  const { positions, groupCenters } = graphPositions();
-  const actor = actorUser();
+function _renderGraphStatic(svgEl, users, rels, actor, W, H) {
+  svgEl.innerHTML = "";
+  const groups = [...new Set(users.map(u => u.group))];
+  const positions = new Map();
 
-  groupCenters.forEach((center, group) => {
-    const label = document.createElementNS(svgNamespace, "text");
-    label.setAttribute("x", String(center.x));
-    label.setAttribute("y", String(center.y - 74));
-    label.setAttribute("class", "group-label");
-    label.textContent = groupLabel(group);
-    svg.appendChild(label);
-  });
-
-  communityRelationships().forEach((relationship) => {
-    const from = positions.get(relationship.fromUserId);
-    const to = positions.get(relationship.toUserId);
-
-    if (!from || !to) {
-      return;
-    }
-
-    const line = document.createElementNS(svgNamespace, "line");
-    line.setAttribute("x1", String(from.x));
-    line.setAttribute("y1", String(from.y));
-    line.setAttribute("x2", String(to.x));
-    line.setAttribute("y2", String(to.y));
-    line.setAttribute("stroke-width", String(1 + relationship.strength));
-    line.setAttribute("class", "edge");
-    svg.appendChild(line);
-  });
-
-  communityUsers().forEach((user) => {
-    const point = positions.get(user.id);
-    const previewing = user.id === uiState.selectedUserId;
-    const acting = actor?.id === user.id;
-
-    const group = document.createElementNS(svgNamespace, "g");
-    group.setAttribute("class", "node");
-
-    const halo = document.createElementNS(svgNamespace, "circle");
-    halo.setAttribute("cx", String(point.x));
-    halo.setAttribute("cy", String(point.y));
-    halo.setAttribute("r", previewing || acting ? "28" : "0");
-    halo.setAttribute("fill", acting ? "rgba(198, 91, 75, 0.10)" : "rgba(28, 107, 90, 0.08)");
-    svg.appendChild(halo);
-
-    const circle = document.createElementNS(svgNamespace, "circle");
-    circle.setAttribute("cx", String(point.x));
-    circle.setAttribute("cy", String(point.y));
-    circle.setAttribute("r", previewing ? "20" : "17");
-    circle.setAttribute("fill", roleColor(user.role));
-    circle.setAttribute("stroke", acting ? "#c65b4b" : previewing ? "#1b160f" : "rgba(255,255,255,0.84)");
-    circle.setAttribute("stroke-width", acting || previewing ? "3" : "2");
-    group.appendChild(circle);
-
-    const name = document.createElementNS(svgNamespace, "text");
-    name.setAttribute("x", String(point.x));
-    name.setAttribute("y", String(point.y + 38));
-    name.setAttribute("class", "node-label");
-    name.textContent = user.name;
-    group.appendChild(name);
-
-    const meta = document.createElementNS(svgNamespace, "text");
-    meta.setAttribute("x", String(point.x));
-    meta.setAttribute("y", String(point.y + 54));
-    meta.setAttribute("class", "node-meta");
-    meta.textContent = acting ? "あなた" : roleLabels[user.role] ?? user.role;
-    group.appendChild(meta);
-
-    group.addEventListener("click", () => {
-      uiState.selectedUserId = user.id;
-      renderApp();
+  groups.forEach((group, gi) => {
+    const angle = (Math.PI * 2 * gi) / Math.max(groups.length, 1) - Math.PI / 2;
+    const cx = W / 2 + Math.cos(angle) * 240;
+    const cy = H / 2 + Math.sin(angle) * 140;
+    const members = users.filter(u => u.group === group);
+    members.forEach((user, mi) => {
+      const ma = (Math.PI * 2 * mi) / Math.max(members.length, 1);
+      const r = members.length === 1 ? 0 : 54;
+      positions.set(user.id, { x: cx + Math.cos(ma) * r, y: cy + Math.sin(ma) * r });
     });
+  });
 
-    svg.appendChild(group);
+  rels.forEach(rel => {
+    const from = positions.get(rel.fromUserId);
+    const to = positions.get(rel.toUserId);
+    if (!from || !to) return;
+    const line = document.createElementNS(svgNamespace, "line");
+    line.setAttribute("x1", String(from.x)); line.setAttribute("y1", String(from.y));
+    line.setAttribute("x2", String(to.x)); line.setAttribute("y2", String(to.y));
+    line.setAttribute("stroke-width", String(1 + (rel.strength ?? 3)));
+    line.setAttribute("class", "edge");
+    svgEl.appendChild(line);
+  });
+
+  users.forEach(user => {
+    const pt = positions.get(user.id);
+    if (!pt) return;
+    const isActor = actor?.id === user.id;
+    const isSelected = user.id === uiState.selectedUserId;
+    const g = document.createElementNS(svgNamespace, "g");
+    g.setAttribute("class", "node");
+    const circle = document.createElementNS(svgNamespace, "circle");
+    circle.setAttribute("cx", String(pt.x)); circle.setAttribute("cy", String(pt.y));
+    circle.setAttribute("r", isSelected ? "20" : "17");
+    circle.setAttribute("fill", roleColor(user.role));
+    circle.setAttribute("stroke", isActor ? "#c65b4b" : isSelected ? "#1b160f" : "rgba(255,255,255,0.84)");
+    circle.setAttribute("stroke-width", isActor || isSelected ? "3" : "2");
+    g.appendChild(circle);
+    const label = document.createElementNS(svgNamespace, "text");
+    label.setAttribute("x", String(pt.x)); label.setAttribute("y", String(pt.y + 36));
+    label.setAttribute("class", "node-label"); label.textContent = user.name;
+    g.appendChild(label);
+    g.addEventListener("click", () => { uiState.selectedUserId = user.id; renderApp(); });
+    svgEl.appendChild(g);
   });
 }
 
@@ -1179,10 +1320,17 @@ function renderSelectedUser() {
     ? `閲覧中: ${preview.name} / ログイン中: ${actor.name}`
     : `${roleLabels[preview.role] ?? preview.role} / ${groupLabel(preview.group)}`;
 
+  const pts = computeUserPoints(preview.id);
+  const badges = computeUserBadges(preview.id);
+
   summary.innerHTML = `
     <h3>${escapeHtml(preview.name)}</h3>
     <p class="subdued">${escapeHtml(subtitle)}</p>
     <p>${escapeHtml(preview.bio)}</p>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
+      <span class="points-pill">${pts} pt</span>
+      ${badges.length > 0 ? `<div class="badges-display">${badges.map(b => `<span class="badge-chip" title="${escapeHtml(b.desc)}">${b.icon} ${escapeHtml(b.label)}</span>`).join("")}</div>` : ""}
+    </div>
   `;
 
   meta.innerHTML = `
@@ -1418,7 +1566,10 @@ function bindStaticEvents() {
 
     persistData();
     event.currentTarget.reset();
-    renderNotice("新しい知見エッジを追加しました。", "success");
+    const targetUser = userById(targetUserId);
+    const pts = computeUserPoints(user.id);
+    showPointsToast(`⚡ 知見エッジ追加！ ${user.name} +${10}pt`);
+    renderNotice(`知見エッジを追加しました。 ${user.name}↔${targetUser?.name ?? ""}`, "success");
     renderApp();
   });
 
@@ -1453,6 +1604,193 @@ function bindStaticEvents() {
     event.currentTarget.reset();
     renderNotice(`${newUser.name} をナレッジグラフに追加しました。`, "success");
     renderApp();
+  });
+}
+
+// ── Gamification ────────────────────────────────────────────
+
+function computeUserPoints(userId) {
+  const user = userById(userId);
+  if (!user) return 0;
+  let points = 0;
+  communityRelationships().forEach(r => {
+    if (r.fromUserId === userId || r.toUserId === userId) {
+      const otherId = r.fromUserId === userId ? r.toUserId : r.fromUserId;
+      const other = userById(otherId);
+      const crossGroup = other && other.group !== user.group;
+      points += 10 + (crossGroup ? 5 : 0) + ((r.strength ?? 3) - 3) * 2;
+    }
+  });
+  return Math.max(0, points);
+}
+
+function computeUserBadges(userId) {
+  const user = userById(userId);
+  if (!user) return [];
+  const degree = degreeOf(userId);
+  const bp = bridgePotential(user);
+  const rels = userRelationships(userId);
+  const connectedGroups = new Set();
+  rels.forEach(r => {
+    const otherId = r.fromUserId === userId ? r.toUserId : r.fromUserId;
+    const other = userById(otherId);
+    if (other) connectedGroups.add(other.group);
+  });
+  const badges = [];
+  if (degree >= 1) badges.push({ icon: "🚀", label: "ファーストコネクト", desc: "最初の知見エッジを作った" });
+  if (degree >= 5) badges.push({ icon: "⭐", label: "キーノード", desc: `${degree}本の知見エッジ` });
+  if (degree >= 10) badges.push({ icon: "🏆", label: "スーパーコネクター", desc: "10本以上の知見エッジ" });
+  if (bp >= 20) badges.push({ icon: "🌉", label: "橋渡し師", desc: "高い橋渡しポテンシャル" });
+  if (connectedGroups.size >= 3) badges.push({ icon: "🎯", label: "知識の伝道師", desc: `${connectedGroups.size}分野と接続` });
+  return badges;
+}
+
+function showPointsToast(message) {
+  const toast = document.createElement("div");
+  toast.className = "points-toast";
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 2500);
+}
+
+function renderGamificationPanel() {
+  const el = document.getElementById("gamificationPanel");
+  if (!el) return;
+  const users = communityUsers();
+  const actor = actorUser();
+  const ranked = [...users]
+    .map(u => ({ user: u, points: computeUserPoints(u.id), badges: computeUserBadges(u.id) }))
+    .sort((a, b) => b.points - a.points)
+    .slice(0, 8);
+
+  el.innerHTML = `
+    <div class="panel-header">
+      <div>
+        <p class="section-kicker">Gamification / Points</p>
+        <h2>知見ポイント ランキング</h2>
+      </div>
+    </div>
+    <p class="subdued">知見エッジを増やすほどポイントが上がります。別分野との接続はボーナス+5pt。</p>
+    <div class="leaderboard">
+      ${ranked.map((entry, i) => `
+        <div class="leaderboard-row ${actor?.id === entry.user.id ? "self-row" : ""}">
+          <span class="rank-num">${i + 1}</span>
+          <div class="rank-info">
+            <strong>${escapeHtml(entry.user.name)}</strong>
+            <span>${escapeHtml(groupLabel(entry.user.group))}</span>
+          </div>
+          <div class="badge-row">${entry.badges.map(b => `<span class="badge-icon" title="${escapeHtml(b.label + ": " + b.desc)}">${b.icon}</span>`).join("")}</div>
+          <span class="points-pill">${entry.points} pt</span>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+// ── SOS / Real-time ──────────────────────────────────────────
+
+function initSosChannel() {
+  if (typeof BroadcastChannel === "undefined") return;
+  _sosBroadcast = new BroadcastChannel("knowledge-mesh-sos");
+  _sosBroadcast.onmessage = (event) => {
+    const msg = event.data;
+    if (msg.type === "sos-new" && !uiState.sosList.find(s => s.id === msg.id)) {
+      uiState.sosList.unshift(msg);
+      renderSosPanel();
+      renderNotice(`🆘 ${escapeHtml(msg.userName)} さんがSOSを送信: ${escapeHtml(msg.topic)}`, "info");
+    }
+    if (msg.type === "sos-resolved") {
+      const entry = uiState.sosList.find(s => s.id === msg.id);
+      if (entry) { entry.status = "resolved"; renderSosPanel(); }
+    }
+  };
+}
+
+function renderSosPanel() {
+  const el = document.getElementById("sosPanel");
+  if (!el) return;
+  const actor = actorUser();
+  const activeSos = uiState.sosList.filter(s => s.status === "active");
+
+  const sosFormHtml = isMember() ? `
+    <form id="sosForm" class="form-grid" style="margin-top:14px">
+      <label class="field full">
+        <span>何に困っていますか？</span>
+        <input name="topic" type="text" placeholder="例: 線形代数の固有値が全然わからない" required />
+      </label>
+      <button class="primary-button full sos-button" type="submit">🆘 SOSを送る</button>
+    </form>
+  ` : "";
+
+  const listHtml = activeSos.length === 0
+    ? `<div class="empty-state">現在アクティブなSOSはありません。</div>`
+    : activeSos.map(sos => `
+        <article class="sos-card ${sos.userId === actor?.id ? "sos-self" : ""}">
+          <div class="sos-head">
+            <strong>${escapeHtml(sos.userName)}</strong>
+            <span class="sos-time">${escapeHtml(sos.timeLabel)}</span>
+          </div>
+          <p class="sos-topic">${escapeHtml(sos.topic)}</p>
+          ${sos.userId !== actor?.id
+            ? `<button class="tiny-button" data-sos-id="${escapeHtml(sos.id)}" type="button">✋ 5分Syncを申し出る</button>`
+            : `<span class="subdued" style="font-size:0.82rem">（あなたのSOS）</span>`
+          }
+        </article>
+      `).join("");
+
+  el.innerHTML = `
+    <div class="panel-header">
+      <div>
+        <p class="section-kicker">SOS / BroadcastChannel</p>
+        <h2>リアルタイムSOS</h2>
+      </div>
+      <span class="status-badge ${activeSos.length > 0 ? "badge-active" : ""}">
+        ${activeSos.length > 0 ? `${activeSos.length}件 アクティブ` : "待機中"}
+      </span>
+    </div>
+    <p class="subdued">今すぐ助けが必要な時はSOSを送信。同一ページを開いている別タブにリアルタイムで届きます。</p>
+    ${sosFormHtml}
+    <div class="sos-list">${listHtml}</div>
+  `;
+
+  const form = el.querySelector("#sosForm");
+  if (form) {
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const currentActor = actorUser();
+      if (!currentActor) return;
+      const topic = String(new FormData(event.currentTarget).get("topic")).trim();
+      if (!topic) return;
+      const sos = {
+        id: toId("sos"),
+        userId: currentActor.id,
+        userName: currentActor.name,
+        topic,
+        timeLabel: new Date().toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" }),
+        status: "active",
+        type: "sos-new",
+      };
+      uiState.sosList.unshift(sos);
+      _sosBroadcast?.postMessage(sos);
+      form.reset();
+      renderSosPanel();
+      renderNotice(`SOSを送信しました: ${topic}`, "success");
+    });
+  }
+
+  el.querySelectorAll("[data-sos-id]").forEach(button => {
+    button.addEventListener("click", () => {
+      const currentActor = actorUser();
+      const sosId = button.dataset.sosId;
+      const sos = uiState.sosList.find(s => s.id === sosId);
+      if (!sos || !currentActor) return;
+      sos.status = "resolved";
+      _sosBroadcast?.postMessage({ id: sosId, type: "sos-resolved" });
+      showPointsToast(`✋ ${currentActor.name} さんが応答！ +10pt`);
+      renderSosPanel();
+      renderGamificationPanel();
+      renderNotice(`${currentActor.name} さんが ${sos.userName} さんのSOSに応答しました！`, "success");
+    });
   });
 }
 
@@ -1551,12 +1889,15 @@ function renderApp() {
   fillProfileForm();
   fillRelationshipControls();
   renderCoursePanel();
+  renderSosPanel();
+  renderGamificationPanel();
   document.getElementById("memberSearchInput").value = uiState.memberSearch;
   document.getElementById("courseSearchInput").value = uiState.courseSearch;
 }
 
 async function initApp() {
   bindStaticEvents();
+  initSosChannel();
   loadStoredAuthSession();
 
   try {
