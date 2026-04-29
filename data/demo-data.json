@@ -1,0 +1,334 @@
+{
+  "communities": [
+    {
+      "id": "campus-east",
+      "name": "東キャンパス 理工学部",
+      "subtitle": "数学・情報・物理系の知見ネットワーク",
+      "description": "理工学部シラバス1808科目の授業計画をベースに、学生の「今詰まっているトピック」を高解像度でマッチングするナレッジメッシュです。"
+    },
+    {
+      "id": "campus-west",
+      "name": "西キャンパス 文理融合",
+      "subtitle": "研究室・サークル・学際領域の横断ネットワーク",
+      "description": "文系・理系の壁を越えて、シラバスの授業計画トピックを横断しながら互いの専門性を活かすネットワークです。"
+    }
+  ],
+  "accounts": [
+    {
+      "id": "account-tanaka-sensei",
+      "username": "tanaka.sensei",
+      "password": "demo1234",
+      "role": "manager",
+      "displayName": "田中先生 / 東キャンパス担当",
+      "communityId": "campus-east",
+      "userId": "east-tanaka",
+      "demoNote": "東キャンパス理工学部のナレッジグラフを管理する教員アカウント"
+    },
+    {
+      "id": "account-suzuki-sensei",
+      "username": "suzuki.sensei",
+      "password": "demo1234",
+      "role": "manager",
+      "displayName": "鈴木先生 / 西キャンパス担当",
+      "communityId": "campus-west",
+      "userId": "west-suzuki",
+      "demoNote": "西キャンパス文理融合のナレッジグラフを管理する教員アカウント"
+    },
+    {
+      "id": "account-yuki-member",
+      "username": "yuki",
+      "password": "demo1234",
+      "role": "member",
+      "displayName": "ゆき",
+      "communityId": "campus-east",
+      "userId": "east-yuki",
+      "demoNote": "線形代数で詰まっている新入生。SOS発信側のデモ用"
+    },
+    {
+      "id": "account-haruto-member",
+      "username": "haruto",
+      "password": "demo1234",
+      "role": "member",
+      "displayName": "はると",
+      "communityId": "campus-east",
+      "userId": "east-haruto",
+      "demoNote": "プログラミングが得意な橋渡し候補のデモ用"
+    },
+    {
+      "id": "account-saki-member",
+      "username": "saki",
+      "password": "demo1234",
+      "role": "member",
+      "displayName": "さき",
+      "communityId": "campus-west",
+      "userId": "west-saki",
+      "demoNote": "文理融合キャンパスの新規参加学生のデモ用"
+    }
+  ],
+  "users": [
+    {
+      "id": "east-yuki",
+      "communityId": "campus-east",
+      "name": "ゆき",
+      "group": "newcomer",
+      "role": "new",
+      "availability": "平日昼",
+      "bio": "情報学科1年。線形代数と微分方程式で詰まっている。Pythonは少しだけ触れる。",
+      "interests": ["線形代数", "微分方程式", "プログラミング", "データ構造"],
+      "goals": ["数学の証明を教わりたい", "アルゴリズムを理解したい"],
+      "activityTags": ["図書館にいる", "昼に動く", "初参加"]
+    },
+    {
+      "id": "east-tanaka",
+      "communityId": "campus-east",
+      "name": "田中先生",
+      "group": "math",
+      "role": "core",
+      "availability": "平日午後",
+      "bio": "数学科の准教授。線形代数と最適化の講義を担当。学生の自主学習支援に興味あり。",
+      "interests": ["線形代数", "最適化", "数値計算", "微分方程式"],
+      "goals": ["学生同士の学び合いを促進したい", "孤立する学生を減らしたい"],
+      "activityTags": ["研究室にいる", "午後に動く", "相談に乗る"]
+    },
+    {
+      "id": "east-haruto",
+      "communityId": "campus-east",
+      "name": "はると",
+      "group": "cs",
+      "role": "bridge",
+      "availability": "平日夜",
+      "bio": "情報学科3年。バックエンドとインフラが得意。アルゴリズムとデータ構造が好き。",
+      "interests": ["アルゴリズム", "データ構造", "プログラミング", "ソフトウェア工学"],
+      "goals": ["数学系の人と組みたい", "数値計算を学びたい"],
+      "activityTags": ["夜に動く", "デバッグが速い", "ターミナル住人"]
+    },
+    {
+      "id": "east-mao",
+      "communityId": "campus-east",
+      "name": "まお",
+      "group": "physics",
+      "role": "core",
+      "availability": "平日昼",
+      "bio": "物理学科3年。量子力学と数値シミュレーションが専門。LaTeXで資料を書くのが好き。",
+      "interests": ["量子力学", "数値計算", "線形代数", "微分方程式"],
+      "goals": ["プログラミングを教わりたい", "分野横断の議論がしたい"],
+      "activityTags": ["昼に動く", "理論派", "ノートが丁寧"]
+    },
+    {
+      "id": "east-ren",
+      "communityId": "campus-east",
+      "name": "れん",
+      "group": "cs",
+      "role": "core",
+      "availability": "平日夜",
+      "bio": "情報学科4年。機械学習とデータ分析が得意。卒論テーマはNLPの応用。",
+      "interests": ["機械学習", "統計", "アルゴリズム", "プログラミング"],
+      "goals": ["研究の相談相手がほしい", "後輩に教えたい"],
+      "activityTags": ["夜に動く", "論文読み", "実装が速い"]
+    },
+    {
+      "id": "east-airi",
+      "communityId": "campus-east",
+      "name": "あいり",
+      "group": "math",
+      "role": "new",
+      "availability": "土日昼",
+      "bio": "数学科2年。代数学に興味があるが、プログラミングはほぼ未経験。",
+      "interests": ["代数学", "線形代数", "微分方程式", "集合と位相"],
+      "goals": ["プログラミングを始めたい", "勉強会仲間がほしい"],
+      "activityTags": ["土日に動く", "じっくり考える", "聞き役"]
+    },
+    {
+      "id": "east-kai",
+      "communityId": "campus-east",
+      "name": "かい",
+      "group": "newcomer",
+      "role": "isolated",
+      "availability": "平日夜",
+      "bio": "情報学科1年。プログラミングの基礎で詰まっていて、誰に聞けばいいかわからない。",
+      "interests": ["プログラミング", "データ構造", "計算機基礎"],
+      "goals": ["アルゴリズムを理解したい", "先輩と話してみたい"],
+      "activityTags": ["夜に動く", "一人で悩みがち", "初参加"]
+    },
+    {
+      "id": "west-suzuki",
+      "communityId": "campus-west",
+      "name": "鈴木先生",
+      "group": "interdisciplinary",
+      "role": "core",
+      "availability": "平日昼",
+      "bio": "学際情報学の教授。文理融合プロジェクトの統括。異分野コラボレーションの促進に力を入れている。",
+      "interests": ["学際研究", "デザイン思考", "プロジェクト管理"],
+      "goals": ["文理融合チームを増やしたい", "学生の自律的な学びを支援したい"],
+      "activityTags": ["昼に動く", "調整が得意", "ファシリテーション"]
+    },
+    {
+      "id": "west-saki",
+      "communityId": "campus-west",
+      "name": "さき",
+      "group": "design",
+      "role": "new",
+      "availability": "平日昼",
+      "bio": "デザイン学科2年。UI/UXデザインが好き。技術側の人と組んでプロダクトを作りたい。",
+      "interests": ["UI/UX", "Figma", "プロトタイピング"],
+      "goals": ["エンジニアと話したい", "ハッカソンに出たい"],
+      "activityTags": ["昼に動く", "ビジュアル重視", "初参加"]
+    },
+    {
+      "id": "west-taro",
+      "communityId": "campus-west",
+      "name": "たろう",
+      "group": "social",
+      "role": "bridge",
+      "availability": "土日昼",
+      "bio": "社会学科3年。地域調査とデータ分析を組み合わせた研究をしている。統計が使える。",
+      "interests": ["社会調査", "統計", "データ分析", "数値計算"],
+      "goals": ["技術系の人と共同研究したい", "データ可視化を学びたい"],
+      "activityTags": ["土日に動く", "フィールドワーク", "議論好き"]
+    },
+    {
+      "id": "west-mika",
+      "communityId": "campus-west",
+      "name": "みか",
+      "group": "interdisciplinary",
+      "role": "core",
+      "availability": "平日夜",
+      "bio": "学際情報学科4年。プログラミングとデザインの両方ができる。卒業制作でアプリを開発中。",
+      "interests": ["React", "デザインシステム", "アクセシビリティ"],
+      "goals": ["バックエンドに詳しい人と組みたい", "後輩を巻き込みたい"],
+      "activityTags": ["夜に動く", "フルスタック志向", "教えるのが好き"]
+    },
+    {
+      "id": "west-shun",
+      "communityId": "campus-west",
+      "name": "しゅん",
+      "group": "social",
+      "role": "isolated",
+      "availability": "平日昼",
+      "bio": "経済学科2年。統計学の課題で苦戦中。誰かに聞きたいが知り合いが少ない。",
+      "interests": ["統計", "確率論", "経済分析", "データ分析"],
+      "goals": ["統計を教えてくれる人と会いたい", "勉強会に参加したい"],
+      "activityTags": ["昼に動く", "一人で悩みがち", "初参加"]
+    },
+    {
+      "id": "west-hina",
+      "communityId": "campus-west",
+      "name": "ひな",
+      "group": "design",
+      "role": "bridge",
+      "availability": "土日昼",
+      "bio": "デザイン学科3年。ワークショップのファシリテーションが得意。異分野の人を繋げるのが好き。",
+      "interests": ["ワークショップ", "ファシリテーション", "UI/UX"],
+      "goals": ["理系学生との接点を増やしたい", "文理融合プロジェクトを立ち上げたい"],
+      "activityTags": ["土日に動く", "巻き込みが得意", "場づくり"]
+    }
+  ],
+  "relationships": [
+    {
+      "id": "rel-east-1",
+      "communityId": "campus-east",
+      "fromUserId": "east-tanaka",
+      "toUserId": "east-mao",
+      "type": "project",
+      "strength": 4,
+      "note": "数値シミュレーションの研究指導で頻繁にやり取りしている"
+    },
+    {
+      "id": "rel-east-2",
+      "communityId": "campus-east",
+      "fromUserId": "east-haruto",
+      "toUserId": "east-ren",
+      "type": "project",
+      "strength": 4,
+      "note": "ハッカソンで一緒にMLパイプラインを構築した"
+    },
+    {
+      "id": "rel-east-3",
+      "communityId": "campus-east",
+      "fromUserId": "east-mao",
+      "toUserId": "east-ren",
+      "type": "talked",
+      "strength": 3,
+      "note": "線形代数の自主勉強会で議論したことがある"
+    },
+    {
+      "id": "rel-east-4",
+      "communityId": "campus-east",
+      "fromUserId": "east-haruto",
+      "toUserId": "east-airi",
+      "type": "talked",
+      "strength": 2,
+      "note": "図書館で偶然隣になり、環境構築の相談を受けた"
+    },
+    {
+      "id": "rel-west-1",
+      "communityId": "campus-west",
+      "fromUserId": "west-suzuki",
+      "toUserId": "west-mika",
+      "type": "project",
+      "strength": 4,
+      "note": "文理融合プロジェクトの主要メンバーとして協働している"
+    },
+    {
+      "id": "rel-west-2",
+      "communityId": "campus-west",
+      "fromUserId": "west-mika",
+      "toUserId": "west-hina",
+      "type": "project",
+      "strength": 4,
+      "note": "デザインワークショップを共同で開催している"
+    },
+    {
+      "id": "rel-west-3",
+      "communityId": "campus-west",
+      "fromUserId": "west-taro",
+      "toUserId": "west-suzuki",
+      "type": "event",
+      "strength": 3,
+      "note": "地域連携フィールドワークで一緒に調査した"
+    },
+    {
+      "id": "rel-west-4",
+      "communityId": "campus-west",
+      "fromUserId": "west-saki",
+      "toUserId": "west-hina",
+      "type": "known",
+      "strength": 2,
+      "note": "デザイン学科の授業で顔見知り"
+    }
+  ],
+  "events": [
+    {
+      "id": "event-east-1",
+      "communityId": "campus-east",
+      "title": "線形代数もくもく会",
+      "time": "5/02 16:00",
+      "format": "図書館2階で証明問題を一緒に解く自主勉強会",
+      "participants": ["east-yuki", "east-mao", "east-airi"]
+    },
+    {
+      "id": "event-east-2",
+      "communityId": "campus-east",
+      "title": "環境構築ヘルプデスク",
+      "time": "5/04 19:00",
+      "format": "先輩が後輩のPC環境構築を手伝うミニイベント",
+      "participants": ["east-haruto", "east-kai", "east-ren"]
+    },
+    {
+      "id": "event-west-1",
+      "communityId": "campus-west",
+      "title": "文理融合アイデアソン",
+      "time": "5/06 14:00",
+      "format": "異分野チームでプロダクトアイデアを考えるワークショップ",
+      "participants": ["west-mika", "west-taro", "west-saki"]
+    },
+    {
+      "id": "event-west-2",
+      "communityId": "campus-west",
+      "title": "統計ランチ勉強会",
+      "time": "5/08 12:00",
+      "format": "昼休みに統計の基礎を気軽に学ぶ少人数セッション",
+      "participants": ["west-taro", "west-shun", "west-hina"]
+    }
+  ]
+}

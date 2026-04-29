@@ -6,7 +6,10 @@
       "WebFetch(domain:developers.gmo.jp)",
       "WebFetch(domain:www.craftstadium.com)",
       "WebFetch(domain:x.com)",
-      "WebFetch(domain:note.com)"
+      "WebFetch(domain:note.com)",
+      "Bash(pip3:*)",
+      "Bash(brew list:*)",
+      "Bash(python3:*)"
     ]
   }
 }
