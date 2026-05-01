@@ -23,6 +23,10 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 html {
   scroll-behavior: smooth;
 }
@@ -994,4 +998,3 @@ button {
   animation: pointsToast 2.4s ease forwards;
   pointer-events: none;
 }
-

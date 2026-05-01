@@ -38,6 +38,10 @@ http://localhost:8080
 docker compose down
 ```
 
+画面の詳しい説明:
+
+- [SCREEN_GUIDE.md](./SCREEN_GUIDE.md)
+
 ## できること
 
 - ログインによる教員画面 / 学生画面の切り替え
