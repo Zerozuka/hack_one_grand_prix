@@ -139,6 +139,9 @@ class SosOut(BaseModel):
     status: SosStatus
     created_at: datetime
     resolved_at: datetime | None = None
+    responder_user_id: str | None = None
+    responder_name: str | None = None
+    chat_id: str | None = None
 
 
 class SosCreate(BaseModel):
@@ -148,6 +151,31 @@ class SosCreate(BaseModel):
 
 class SosRespond(BaseModel):
     request_id: str
+
+
+class ChatMessageCreate(BaseModel):
+    body: str = Field(min_length=1, max_length=1000)
+
+
+class ChatMessageOut(BaseModel):
+    id: int
+    chat_id: str
+    sender_user_id: str
+    sender_name: str
+    body: str
+    created_at: datetime
+
+
+class SosChatOut(BaseModel):
+    id: str
+    request_id: str
+    community_id: str
+    requester_user_id: str
+    requester_name: str
+    responder_user_id: str
+    responder_name: str
+    topic: str
+    messages: list[ChatMessageOut]
 
 
 class AuditLogOut(BaseModel):
@@ -224,4 +252,3 @@ class ApiEnvelope(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     data: object
-

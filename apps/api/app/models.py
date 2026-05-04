@@ -81,6 +81,7 @@ class User(Base):
     tags: Mapped[list["UserTag"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     event_participations: Mapped[list["EventParticipant"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     sos_requests: Mapped[list["SosRequest"]] = relationship(back_populates="user", cascade="all, delete-orphan", foreign_keys="SosRequest.user_id")
+    chat_messages: Mapped[list["ChatMessage"]] = relationship(back_populates="sender", cascade="all, delete-orphan")
 
 
 class CommunityMembership(Base):
@@ -229,6 +230,7 @@ class SosRequest(Base):
 
     user: Mapped["User"] = relationship(back_populates="sos_requests", foreign_keys=[user_id])
     responses: Mapped[list["SosResponse"]] = relationship(back_populates="request", cascade="all, delete-orphan")
+    chat: Mapped["SosChat | None"] = relationship(back_populates="request", cascade="all, delete-orphan")
 
 
 class SosResponse(Base):
@@ -242,6 +244,35 @@ class SosResponse(Base):
     request: Mapped["SosRequest"] = relationship(back_populates="responses")
 
 
+class SosChat(Base):
+    __tablename__ = "sos_chats"
+    __table_args__ = (UniqueConstraint("request_id", name="uq_sos_chat_request"),)
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    request_id: Mapped[str] = mapped_column(ForeignKey("sos_requests.id", ondelete="CASCADE"))
+    community_id: Mapped[str] = mapped_column(ForeignKey("communities.id", ondelete="CASCADE"))
+    requester_user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    responder_user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    request: Mapped["SosRequest"] = relationship(back_populates="chat")
+    messages: Mapped[list["ChatMessage"]] = relationship(back_populates="chat", cascade="all, delete-orphan")
+
+
+class ChatMessage(Base):
+    __tablename__ = "chat_messages"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    chat_id: Mapped[str] = mapped_column(ForeignKey("sos_chats.id", ondelete="CASCADE"))
+    sender_user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    body: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    chat: Mapped["SosChat"] = relationship(back_populates="messages")
+    sender: Mapped["User"] = relationship(back_populates="chat_messages")
+
+
 class AuditLog(Base):
     __tablename__ = "audit_logs"
 
@@ -252,4 +283,3 @@ class AuditLog(Base):
     resource_id: Mapped[str] = mapped_column(String(128))
     summary: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-

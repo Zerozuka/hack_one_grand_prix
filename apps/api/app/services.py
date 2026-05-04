@@ -20,6 +20,7 @@ from app.domain import (
 )
 from app.models import (
     AuditLog,
+    ChatMessage,
     Community,
     CommunityMembership,
     Course,
@@ -30,6 +31,7 @@ from app.models import (
     NodeRole,
     Relationship,
     RelationshipType,
+    SosChat,
     SosRequest,
     SosResponse,
     SosStatus,
@@ -185,6 +187,17 @@ def list_community_sos(db: Session, community_id: str, users_by_id: dict[str, Us
         .where(SosRequest.community_id == community_id)
         .order_by(SosRequest.created_at.desc())
     ).all()
+    request_ids = [row.id for row in rows]
+    responses = db.scalars(
+        select(SosResponse)
+        .where(SosResponse.request_id.in_(request_ids))
+        .order_by(SosResponse.created_at.asc())
+    ).all() if request_ids else []
+    chats = db.scalars(select(SosChat).where(SosChat.request_id.in_(request_ids))).all() if request_ids else []
+    response_by_request: dict[str, SosResponse] = {}
+    for response in responses:
+        response_by_request.setdefault(response.request_id, response)
+    chat_by_request = {chat.request_id: chat for chat in chats}
     return [
         SosOut(
             id=row.id,
@@ -195,6 +208,11 @@ def list_community_sos(db: Session, community_id: str, users_by_id: dict[str, Us
             status=row.status,
             created_at=row.created_at,
             resolved_at=row.resolved_at,
+            responder_user_id=response_by_request[row.id].responder_user_id if row.id in response_by_request else None,
+            responder_name=users_by_id[response_by_request[row.id].responder_user_id].name
+            if row.id in response_by_request and response_by_request[row.id].responder_user_id in users_by_id
+            else None,
+            chat_id=chat_by_request[row.id].id if row.id in chat_by_request else None,
         )
         for row in rows
     ]
@@ -478,8 +496,36 @@ def resolve_sos_request(db: Session, request_id: str, responder_user_id: str) ->
     request = db.get(SosRequest, request_id)
     if request is None:
         return None
-    request.status = SosStatus.resolved
-    request.resolved_at = datetime.now(UTC)
-    db.add(SosResponse(request_id=request.id, responder_user_id=responder_user_id))
+    first_response = db.scalar(
+        select(SosResponse)
+        .where(SosResponse.request_id == request.id)
+        .order_by(SosResponse.created_at.asc())
+    )
+    if first_response is None:
+        request.status = SosStatus.resolved
+        request.resolved_at = datetime.now(UTC)
+        db.add(SosResponse(request_id=request.id, responder_user_id=responder_user_id))
     return request
 
+
+def ensure_sos_chat(db: Session, request: SosRequest, responder_user_id: str) -> SosChat:
+    chat = db.scalar(select(SosChat).where(SosChat.request_id == request.id))
+    if chat is not None:
+        return chat
+    chat = SosChat(
+        id=f"chat-{request.id}",
+        request_id=request.id,
+        community_id=request.community_id,
+        requester_user_id=request.user_id,
+        responder_user_id=responder_user_id,
+    )
+    db.add(chat)
+    db.flush()
+    db.add(
+        ChatMessage(
+            chat_id=chat.id,
+            sender_user_id=responder_user_id,
+            body="5分だけ一緒に見ます。ここで状況を教えてください。",
+        )
+    )
+    return chat

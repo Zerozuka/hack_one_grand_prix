@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from collections import defaultdict
+from datetime import UTC, datetime
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
@@ -13,12 +14,15 @@ from app.db import get_db
 from app.models import (
     AuditLog,
     AuthIdentity,
+    ChatMessage,
     CommunityMembership,
     Course,
     Event,
     EventParticipant,
     Relationship,
+    SosChat,
     SosRequest,
+    SosResponse,
     SosStatus,
     TagKind,
     User,
@@ -27,6 +31,8 @@ from app.models import (
 from app.schemas import (
     AuditLogOut,
     AuthIdentityOut,
+    ChatMessageCreate,
+    ChatMessageOut,
     CommunityOut,
     CourseImportPayload,
     CourseImportResult,
@@ -40,6 +46,7 @@ from app.schemas import (
     RelationshipCreate,
     RelationshipOut,
     SosCreate,
+    SosChatOut,
     SosOut,
     SosRespond,
     UserCreate,
@@ -50,6 +57,7 @@ from app.services import (
     build_dashboard,
     build_user_tag_index,
     commit_course_import,
+    ensure_sos_chat,
     get_course_detail,
     get_course_matches,
     list_communities_for_user,
@@ -90,6 +98,78 @@ class SosConnectionManager:
 
 
 sos_manager = SosConnectionManager()
+
+
+def can_access_sos_chat(context: RequestContext, chat: SosChat) -> bool:
+    return (
+        context.is_platform_admin()
+        or context.can_manage(chat.community_id)
+        or context.user.id in {chat.requester_user_id, chat.responder_user_id}
+    )
+
+
+def serialize_chat(db: Session, chat: SosChat) -> SosChatOut:
+    request = db.get(SosRequest, chat.request_id)
+    requester = db.get(User, chat.requester_user_id)
+    responder = db.get(User, chat.responder_user_id)
+    messages = db.scalars(
+        select(ChatMessage)
+        .where(ChatMessage.chat_id == chat.id)
+        .order_by(ChatMessage.created_at.asc(), ChatMessage.id.asc())
+    ).all()
+    sender_ids = {message.sender_user_id for message in messages}
+    senders = {
+        user.id: user
+        for user in db.scalars(select(User).where(User.id.in_(sender_ids))).all()
+    } if sender_ids else {}
+    return SosChatOut(
+        id=chat.id,
+        request_id=chat.request_id,
+        community_id=chat.community_id,
+        requester_user_id=chat.requester_user_id,
+        requester_name=requester.name if requester else "Unknown",
+        responder_user_id=chat.responder_user_id,
+        responder_name=responder.name if responder else "Unknown",
+        topic=request.topic if request else "",
+        messages=[
+            ChatMessageOut(
+                id=message.id,
+                chat_id=message.chat_id,
+                sender_user_id=message.sender_user_id,
+                sender_name=senders[message.sender_user_id].name if message.sender_user_id in senders else "Unknown",
+                body=message.body,
+                created_at=message.created_at,
+            )
+            for message in messages
+        ],
+    )
+
+
+def serialize_sos(db: Session, request: SosRequest, users_by_id: dict[str, User] | None = None) -> SosOut:
+    users_by_id = users_by_id or {}
+    first_response = db.scalar(
+        select(SosResponse)
+        .where(SosResponse.request_id == request.id)
+        .order_by(SosResponse.created_at.asc())
+    )
+    chat = db.scalar(select(SosChat).where(SosChat.request_id == request.id))
+    responder = users_by_id.get(first_response.responder_user_id) if first_response else None
+    if first_response and responder is None:
+        responder = db.get(User, first_response.responder_user_id)
+    requester = users_by_id.get(request.user_id) or db.get(User, request.user_id)
+    return SosOut(
+        id=request.id,
+        community_id=request.community_id,
+        user_id=request.user_id,
+        user_name=requester.name if requester else "Unknown",
+        topic=request.topic,
+        status=request.status,
+        created_at=request.created_at,
+        resolved_at=request.resolved_at,
+        responder_user_id=first_response.responder_user_id if first_response else None,
+        responder_name=responder.name if responder else None,
+        chat_id=chat.id if chat else None,
+    )
 
 
 def ensure_any_manager(context: RequestContext) -> None:
@@ -503,20 +583,73 @@ async def respond_sos(
         raise HTTPException(status_code=403, detail="Forbidden")
     request = resolve_sos_request(db, payload.request_id, context.user.id)
     assert request is not None
+    first_response = db.scalar(
+        select(SosResponse)
+        .where(SosResponse.request_id == request.id)
+        .order_by(SosResponse.created_at.asc())
+    )
+    responder_user_id = first_response.responder_user_id if first_response else context.user.id
+    chat = ensure_sos_chat(db, request, responder_user_id)
     log_action(db, context.user.id, "respond", "sos_request", request.id, request.topic)
     db.commit()
-    response = SosOut(
-        id=request.id,
-        community_id=request.community_id,
-        user_id=request.user_id,
-        user_name=db.get(User, request.user_id).name if db.get(User, request.user_id) else "Unknown",
-        topic=request.topic,
-        status=request.status,
-        created_at=request.created_at,
-        resolved_at=request.resolved_at,
-    )
+    db.refresh(chat)
+    response = serialize_sos(db, request)
     await sos_manager.broadcast(request.community_id, {"type": "sos-resolved", "payload": response.model_dump(mode="json")})
     return response
+
+
+@router.get("/sos/{request_id}/chat", response_model=SosChatOut)
+def get_sos_chat(
+    request_id: str,
+    context: RequestContext = Depends(get_request_context),
+    db: Session = Depends(get_db),
+) -> SosChatOut:
+    request = db.get(SosRequest, request_id)
+    if request is None:
+        raise HTTPException(status_code=404, detail="SOS not found")
+    if context.role_for(request.community_id) is None and not context.is_platform_admin():
+        raise HTTPException(status_code=403, detail="Forbidden")
+    chat = db.scalar(select(SosChat).where(SosChat.request_id == request_id))
+    if chat is None:
+        first_response = db.scalar(
+            select(SosResponse)
+            .where(SosResponse.request_id == request.id)
+            .order_by(SosResponse.created_at.asc())
+        )
+        if first_response is None:
+            raise HTTPException(status_code=404, detail="Chat not started")
+        chat = ensure_sos_chat(db, request, first_response.responder_user_id)
+        db.commit()
+        db.refresh(chat)
+    if not can_access_sos_chat(context, chat):
+        raise HTTPException(status_code=403, detail="Forbidden")
+    return serialize_chat(db, chat)
+
+
+@router.post("/sos/{request_id}/chat/messages", response_model=SosChatOut)
+def create_sos_chat_message(
+    request_id: str,
+    payload: ChatMessageCreate,
+    context: RequestContext = Depends(get_request_context),
+    db: Session = Depends(get_db),
+) -> SosChatOut:
+    request = db.get(SosRequest, request_id)
+    if request is None:
+        raise HTTPException(status_code=404, detail="SOS not found")
+    chat = db.scalar(select(SosChat).where(SosChat.request_id == request_id))
+    if chat is None:
+        raise HTTPException(status_code=404, detail="Chat not started")
+    if not can_access_sos_chat(context, chat):
+        raise HTTPException(status_code=403, detail="Forbidden")
+    body = payload.body.strip()
+    if not body:
+        raise HTTPException(status_code=422, detail="Message body is required")
+    db.add(ChatMessage(chat_id=chat.id, sender_user_id=context.user.id, body=body))
+    chat.updated_at = datetime.now(UTC)
+    log_action(db, context.user.id, "create", "chat_message", chat.id, body[:120])
+    db.commit()
+    db.refresh(chat)
+    return serialize_chat(db, chat)
 
 
 @router.websocket("/ws/sos/{community_id}")
