@@ -252,3 +252,22 @@ class ApiEnvelope(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     data: object
+
+
+class RegisterPayload(BaseModel):
+    username: str = Field(min_length=2, max_length=64)
+    password: str = Field(min_length=6, max_length=128)
+    display_name: str = Field(min_length=1, max_length=255)
+    community_id: str
+
+
+class VerifyPayload(BaseModel):
+    username: str
+    password: str
+
+
+class VerifyOut(BaseModel):
+    user_id: str
+    display_name: str
+    community_id: str
+    role: str

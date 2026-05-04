@@ -12,7 +12,9 @@
       "Bash(python3:*)",
       "Bash(curl:*)",
       "Bash(docker compose *)",
-      "Bash(node --input-type=module)"
+      "Bash(node --input-type=module)",
+      "Bash(node --check /Users/rei_ishizuka/play/hack_one_grand_prix/app.js)",
+      "Bash(xargs cat *)"
     ]
   }
 }

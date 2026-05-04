@@ -106,6 +106,7 @@ class AuthIdentity(Base):
     provider: Mapped[str] = mapped_column(String(128))
     subject: Mapped[str] = mapped_column(String(255))
     email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    password_hash: Mapped[str | None] = mapped_column(String(128), nullable=True)
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
 
     user: Mapped["User"] = relationship(back_populates="auth_identities")

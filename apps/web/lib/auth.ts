@@ -65,19 +65,40 @@ if (process.env.AUTH_DEV_MODE !== "false") {
         }
 
         const account = findDemoAccount(parsed.data.username, parsed.data.password);
-        if (!account) {
-          return null;
+        if (account) {
+          return {
+            id: account.userId,
+            name: account.displayName,
+            email: `${account.username}@local.dev`,
+            role: account.role === "manager" ? "community_manager" : "member",
+            communityId: account.communityId,
+            provider: "dev-credentials",
+            subject: account.username,
+          };
         }
 
-        return {
-          id: account.userId,
-          name: account.displayName,
-          email: `${account.username}@local.dev`,
-          role: account.role === "manager" ? "community_manager" : "member",
-          communityId: account.communityId,
-          provider: "dev-credentials",
-          subject: account.username,
-        };
+        // DB に登録されたユーザーを確認
+        try {
+          const apiBase = process.env.API_BASE_URL ?? "http://localhost:8000";
+          const res = await fetch(`${apiBase}/v1/auth/verify`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: parsed.data.username, password: parsed.data.password }),
+          });
+          if (!res.ok) return null;
+          const data = await res.json() as { user_id: string; display_name: string; community_id: string };
+          return {
+            id: data.user_id,
+            name: data.display_name,
+            email: `${parsed.data.username}@local.dev`,
+            role: "member" as const,
+            communityId: data.community_id,
+            provider: "local",
+            subject: parsed.data.username,
+          };
+        } catch {
+          return null;
+        }
       },
     }),
   );

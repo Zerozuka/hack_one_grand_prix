@@ -131,6 +131,12 @@ export function LoginForm() {
                     SSO でログイン
                   </button>
                 ) : null}
+                <a
+                  href="/register"
+                  className="text-sm font-semibold text-[#0969da] hover:underline"
+                >
+                  新規登録はこちら
+                </a>
               </div>
             </form>
           </div>

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import hmac
 import json
 from collections import defaultdict
 from datetime import UTC, datetime
@@ -45,6 +47,7 @@ from app.schemas import (
     RecommendationOut,
     RelationshipCreate,
     RelationshipOut,
+    RegisterPayload,
     SosCreate,
     SosChatOut,
     SosOut,
@@ -52,6 +55,8 @@ from app.schemas import (
     UserCreate,
     UserProfileOut,
     UserProfileUpdate,
+    VerifyOut,
+    VerifyPayload,
 )
 from app.services import (
     build_dashboard,
@@ -180,9 +185,106 @@ def ensure_any_manager(context: RequestContext) -> None:
     raise HTTPException(status_code=403, detail="Forbidden")
 
 
+def _hash_password(password: str, secret: str) -> str:
+    return hmac.new(secret.encode(), password.encode(), hashlib.sha256).hexdigest()
+
+
 @router.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@router.post("/auth/register", status_code=201)
+def register(
+    payload: RegisterPayload,
+    db: Session = Depends(get_db),
+) -> dict[str, str]:
+    from app.config import get_settings
+    settings = get_settings()
+
+    existing = db.scalar(
+        select(AuthIdentity).where(
+            AuthIdentity.provider == "local",
+            AuthIdentity.subject == payload.username,
+        )
+    )
+    if existing is not None:
+        raise HTTPException(status_code=409, detail="そのユーザー名はすでに使われています.")
+
+    community = db.get(type(db.get(User, "x") or User), payload.community_id) if False else None
+    from app.models import Community
+    community = db.get(Community, payload.community_id)
+    if community is None:
+        raise HTTPException(status_code=404, detail="コミュニティが見つかりません.")
+
+    user = User(
+        id=f"user-{uuid4()}",
+        name=payload.display_name,
+        group_code="newcomer",
+        node_role="new",
+        availability="",
+        bio="",
+    )
+    db.add(user)
+    db.flush()
+
+    db.add(CommunityMembership(
+        community_id=payload.community_id,
+        user_id=user.id,
+        role=UserRole.member,
+        is_primary=True,
+    ))
+
+    password_hash = _hash_password(payload.password, settings.api_internal_jwt_secret)
+    db.add(AuthIdentity(
+        provider="local",
+        subject=payload.username,
+        email=None,
+        password_hash=password_hash,
+        user_id=user.id,
+    ))
+
+    db.commit()
+    return {"user_id": user.id}
+
+
+@router.post("/auth/verify", response_model=VerifyOut)
+def verify_credentials(
+    payload: VerifyPayload,
+    db: Session = Depends(get_db),
+) -> VerifyOut:
+    from app.config import get_settings
+    settings = get_settings()
+
+    identity = db.scalar(
+        select(AuthIdentity).where(
+            AuthIdentity.provider == "local",
+            AuthIdentity.subject == payload.username,
+        )
+    )
+    if identity is None or not identity.password_hash:
+        raise HTTPException(status_code=401, detail="認証に失敗しました.")
+
+    expected = _hash_password(payload.password, settings.api_internal_jwt_secret)
+    if not hmac.compare_digest(identity.password_hash, expected):
+        raise HTTPException(status_code=401, detail="認証に失敗しました.")
+
+    membership = db.scalar(
+        select(CommunityMembership).where(
+            CommunityMembership.user_id == identity.user_id,
+            CommunityMembership.is_primary == True,
+        )
+    )
+    if membership is None:
+        raise HTTPException(status_code=401, detail="メンバーシップが見つかりません.")
+
+    user = db.get(User, identity.user_id)
+    return VerifyOut(
+        user_id=identity.user_id,
+        display_name=user.name if user else payload.username,
+        community_id=membership.community_id,
+        role="member",
+    )
 
 
 @router.get("/me", response_model=MeOut)
