@@ -1,26 +1,30 @@
 # Knowledge Mesh
 
-**〜人口減少時代の「知能」を同期する、大学特化型リソース・グラフ〜**
+**5分Sync を軸に、大学内の知見を PostgreSQL で運用できるようにしたリリース前提版です。**
 
-`Knowledge Mesh` は、キャンパス内に点在する学生の「知見」をノード（節点）として繋ぎ合わせる、
-リアルタイム P2P 型アカデミック・リソース同期プラットフォームです。
+`Knowledge Mesh` は、学生・教員の知見、関係、イベント、シラバス、SOS をまとめて扱い、
+「今この悩みを解ける人」と 5 分でつながるための大学向けナレッジマッチング基盤です。
 
-大学全体を巨大な「スキルツリー」に見立て、
-興味・専門・活動タグ・関係性だけで **5 分で問題を解決（デバッグ）する** ための「関係性デザインツール」です。
+## アーキテクチャ
 
-## 今回やったこと
+- `apps/web` — `Next.js` / `TypeScript` / `Auth.js` / BFF
+- `apps/api` — `FastAPI` / `SQLAlchemy` / `Alembic`
+- `postgres` — ユーザー、関係、イベント、コース、SOS、監査ログを永続化
+- `packages/contracts` — API 契約共有
 
-- 固定デモ用のハードコード状態から、`data/demo-data.json` 読み込みに変更
-- `localStorage` に保存して、編集内容がリロード後も残るように変更
-- 教員アカウントと学生アカウントを分け、ログイン画面を追加
-- 教員はキャンパス全体の知見グラフを編集、学生は自分向けの推薦確認とプロフィール更新ができるように変更
-- GPS 依存を外して、興味・専門・活動タグだけで動くように変更
+ブラウザは直接 API や DB を叩かず、Web 側の BFF とセッションを通してアクセスします。
+
+## できること
+
+- デモ認証または OIDC 前提のログイン
+- コミュニティごとのダッシュボード表示
+- 5分Sync 向け推薦表示
+- 知見エッジ、イベント、SOS の API 管理
+- シラバス検索とコース取込
+- `/admin` での運用確認
+- 監査ログと認証主体の紐付け確認
 
 ## 起動方法
-
-このアプリは `JSON` を `fetch()` で読むため、`file://` ではなく HTTP 経由で開くのを前提にしています。
-
-### Docker
 
 ```bash
 docker compose up --build
@@ -32,77 +36,73 @@ docker compose up --build
 http://localhost:8080
 ```
 
+API ヘルス:
+
+```text
+http://localhost:8000/v1/health
+```
+
 停止:
 
 ```bash
 docker compose down
 ```
 
-画面の詳しい説明:
+本番寄り設定:
 
-- [SCREEN_GUIDE.md](./SCREEN_GUIDE.md)
-
-## できること
-
-- ログインによる教員画面 / 学生画面の切り替え
-- キャンパス（コミュニティ）切り替え
-- 学生検索
-- ユーザー選択
-- プロフィール編集（知見・専門・活動タグ）
-- ダミー学生追加
-- 知見エッジ（関係性）追加 / 削除
-- 推薦モード切り替え（橋渡し重視 / 補完重視 / 共通点重視）
-- ナレッジグラフ、分析、推薦のリアルタイム更新
+```bash
+docker compose -f docker-compose.prod.yml up --build
+```
 
 ## デモアカウント
 
-### 教員（管理者）
-
 - `tanaka.sensei / demo1234`
 - `suzuki.sensei / demo1234`
-
-### 学生
-
 - `yuki / demo1234`
 - `haruto / demo1234`
 - `saki / demo1234`
 
-## 画面の違い
+## データ管理
 
-### 教員画面
+- 初回起動時に `data/demo-data.json` と `data/courses.json` から seed されます
+- 2 回目以降は既存データがあると seed は自動スキップされます
+- 強制 reseed したいときは `SEED_FORCE_RESET=true` を使います
 
-- キャンパス全体のナレッジネットワーク分析
-- 選択中の学生プロフィール編集
-- 知見エッジの追加 / 削除
-- ダミー学生追加
+## 主なエンドポイント
 
-### 学生画面
+- `GET /v1/me`
+- `GET /v1/communities`
+- `GET /v1/communities/{community_id}/dashboard`
+- `GET|POST|PATCH /v1/users`
+- `GET|POST|DELETE /v1/relationships`
+- `GET|POST|PATCH|DELETE /v1/events`
+- `GET /v1/courses`
+- `GET /v1/recommendations`
+- `GET|POST /v1/sos`
+- `POST /v1/sos/respond`
+- `GET /v1/admin/*`
 
-- 自分向けのおすすめ知見接続
-- 自分向けの接点提案とイベント表示
-- 自分のプロフィール編集（専門・興味・スキル）
-- 自分視点でのつながり申告
+## 運用メモ
 
-## データ構成
+- DB マイグレーションは API コンテナ起動時に `alembic upgrade head` を実行します
+- WebSocket SOS API は `apps/api` 側に用意してあります
+- UI の詳しい説明は [SCREEN_GUIDE.md](/Users/sasaki/M1/hack_one_grand_prix/SCREEN_GUIDE.md:1) を参照してください
 
-`data/demo-data.json`
+## 環境変数
 
-- `communities` — キャンパス / 学部
-- `accounts` — ログイン用アカウント
-- `users` — 学生ノード
-- `relationships` — 知見エッジ
-- `events` — キャンパスイベント
+- サンプルは [.env.example](/Users/sasaki/M1/hack_one_grand_prix/.env.example:1) にあります
+- 主に使うのは `DATABASE_URL`, `API_INTERNAL_JWT_SECRET`, `NEXTAUTH_SECRET`, `DEFAULT_COMMUNITY_ID`
 
-## 解決したい課題
+## バックアップ / リストア例
 
-- **専門性の分散:** 人口減少により、特定の知識を持つ人が物理的に孤立し、アクセスしづらくなっている
-- **コミュニケーションの不全:** 「隣の人が知っているかもしれない」のに助けを求められず、膨大な時間が検索や試行錯誤で浪費されている
+バックアップ:
 
-## 次の拡張候補
+```bash
+docker compose exec postgres pg_dump -U knowledge_mesh knowledge_mesh > backup.sql
+```
 
-- FastAPI / Next.js で本物の API に接続する
-- 本物の認証 API に接続する
-- リアルタイム SOS 発信（WebSocket）機能を追加する
-- セマンティック・ルーティングによる自動マッチングを実装する
-- D3.js / Cytoscape.js によるインタラクティブなグラフ可視化に切り替える
-- ゲーミフィケーション（助け合いスコア、エッジ発光エフェクト）を追加する
+リストア:
+
+```bash
+cat backup.sql | docker compose exec -T postgres psql -U knowledge_mesh -d knowledge_mesh
+```
