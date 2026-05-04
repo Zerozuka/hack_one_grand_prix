@@ -14,7 +14,6 @@ FROM node:22-alpine AS runner
 
 WORKDIR /app
 ENV NODE_ENV=production
-ENV HOSTNAME=0.0.0.0
 
 COPY --from=builder /app/apps/web/.next/standalone /app/
 COPY --from=builder /app/apps/web/.next/static /app/apps/web/.next/static
