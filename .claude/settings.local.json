@@ -14,7 +14,21 @@
       "Bash(docker compose *)",
       "Bash(node --input-type=module)",
       "Bash(node --check /Users/rei_ishizuka/play/hack_one_grand_prix/app.js)",
-      "Bash(xargs cat *)"
+      "Bash(xargs cat *)",
+      "Bash(mkdir -p /Users/rei_ishizuka/ghq/github.com/Zerozuka/hack_one_grand_prix/.claude/PRPs/prds)",
+      "Bash(mkdir -p /Users/rei_ishizuka/ghq/github.com/Zerozuka/hack_one_grand_prix/.claude/PRPs/plans)",
+      "Bash(git checkout *)",
+      "Bash(python -c \"from app.models import Event; cols = [c.name for c in Event.__table__.columns]; print\\(cols\\)\")",
+      "Bash(ruff check *)",
+      "Bash(uvx ruff *)",
+      "Bash(npm run *)",
+      "Bash(npm install *)",
+      "Bash(mkdir -p /Users/rei_ishizuka/ghq/github.com/Zerozuka/hack_one_grand_prix/.claude/PRPs/reports)",
+      "Bash(mkdir -p /Users/rei_ishizuka/ghq/github.com/Zerozuka/hack_one_grand_prix/.claude/PRPs/plans/completed)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(gh pr *)"
     ]
   }
 }
