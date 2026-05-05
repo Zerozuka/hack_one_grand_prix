@@ -149,6 +149,7 @@ class SosOut(BaseModel):
     responder_user_id: str | None = None
     responder_name: str | None = None
     chat_id: str | None = None
+    matched_user_ids: list[str] = Field(default_factory=list)
 
 
 class SosCreate(BaseModel):

@@ -62,6 +62,7 @@ from app.services import (
     build_dashboard,
     build_user_tag_index,
     commit_course_import,
+    compute_sos_matches,
     ensure_sos_chat,
     get_course_detail,
     get_course_matches,
@@ -541,6 +542,8 @@ def create_event(
     db.add(event)
     db.flush()
     db.add(EventParticipant(event_id=event.id, user_id=context.user.id))
+    if payload.is_live:
+        context.user.bonus_points = (context.user.bonus_points or 0) + 10
     for participant_id in payload.participant_ids:
         if participant_id != context.user.id:
             db.add(EventParticipant(event_id=event.id, user_id=participant_id))
@@ -609,6 +612,8 @@ def join_event(
     )
     if existing is None:
         db.add(EventParticipant(event_id=event_id, user_id=context.user.id))
+        if event.is_live:
+            context.user.bonus_points = (context.user.bonus_points or 0) + 10
         log_action(db, context.user.id, "join", "event", event_id, event.title)
         db.commit()
     users = list_community_users(db, event.community_id)
@@ -722,6 +727,9 @@ async def create_sos(
     log_action(db, context.user.id, "create", "sos_request", request.id, payload.topic)
     db.commit()
     db.refresh(request)
+    users = list_community_users(db, payload.community_id)
+    users_by_id = {user.id: user for user in users}
+    user_tags = build_user_tag_index(db, list(users_by_id))
     response = SosOut(
         id=request.id,
         community_id=request.community_id,
@@ -731,6 +739,7 @@ async def create_sos(
         status=request.status,
         created_at=request.created_at,
         resolved_at=request.resolved_at,
+        matched_user_ids=compute_sos_matches(request, users_by_id, user_tags),
     )
     await sos_manager.broadcast(payload.community_id, {"type": "sos-created", "payload": response.model_dump(mode="json")})
     return response
@@ -747,9 +756,16 @@ async def respond_sos(
         raise HTTPException(status_code=404, detail="SOS not found")
     if context.role_for(request.community_id) is None and not context.is_platform_admin():
         raise HTTPException(status_code=403, detail="Forbidden")
+    existing_response = db.scalar(
+        select(SosResponse)
+        .where(SosResponse.request_id == request.id)
+        .order_by(SosResponse.created_at.asc())
+    )
     request = resolve_sos_request(db, payload.request_id, context.user.id)
     assert request is not None
-    first_response = db.scalar(
+    if existing_response is None:
+        context.user.bonus_points = (context.user.bonus_points or 0) + 20
+    first_response = existing_response or db.scalar(
         select(SosResponse)
         .where(SosResponse.request_id == request.id)
         .order_by(SosResponse.created_at.asc())

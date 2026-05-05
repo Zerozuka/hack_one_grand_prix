@@ -15,6 +15,7 @@ type SosItem = {
   responder_user_id: string | null;
   responder_name: string | null;
   chat_id: string | null;
+  matched_user_ids: string[];
 };
 
 type ChatMessage = {
@@ -249,56 +250,78 @@ export function SosPanel({
             まだ SOS はありません。
           </div>
         ) : (
-          sosQuery.data.map((item) => (
-            <article
-              key={item.id}
-              className={cx("rounded-xl border px-4 py-4 shadow-sm", ui.card)}
-            >
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-bold">{item.user_name}</p>
-                  <p className={cx("mt-1 text-sm", ui.muted)}>{item.topic}</p>
+          sosQuery.data.map((item) => {
+            const matched = item.matched_user_ids.includes(currentUserId);
+
+            return (
+              <article
+                key={item.id}
+                className={cx(
+                  "rounded-xl border px-4 py-4 shadow-sm",
+                  ui.card,
+                  matched && item.status === "active"
+                    ? isDark
+                      ? "border-[#ffab70] shadow-[#ffab70]/10"
+                      : "border-[#fb923c] shadow-[#fb923c]/20"
+                    : undefined,
+                )}
+              >
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-bold">{item.user_name}</p>
+                      {matched && item.status === "active" ? (
+                        <span className="rounded-full bg-[#fff1e5] px-2.5 py-1 text-[11px] font-black text-[#9a3412]">
+                          あなたが答えられます
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className={cx("mt-1 text-sm", ui.muted)}>{item.topic}</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className={`rounded-full px-3 py-1 text-xs font-medium ${
+                      item.status === "active"
+                        ? "bg-[#fbe4da] text-[#9c4227]"
+                        : ui.resolved
+                    }`}>
+                      {item.status === "active" ? "募集中" : "解決済み"}
+                    </span>
+                    {item.status === "active" ? (
+                      <button
+                        type="button"
+                        onClick={() => resolveMutation.mutate(item.id)}
+                        className={cx(
+                          "rounded-full border px-3 py-1 text-xs font-bold transition",
+                          matched
+                            ? "border-[#fb923c] bg-[#fb923c] text-white hover:bg-[#f97316]"
+                            : "hover:border-[#ffab70] hover:text-[#ffab70]",
+                          !matched && (isDark ? "border-[#30363d] text-slate-200" : "border-stone-300 text-stone-700"),
+                        )}
+                      >
+                        対応する
+                      </button>
+                    ) : item.chat_id &&
+                      (item.user_id === currentUserId || item.responder_user_id === currentUserId) ? (
+                      <button
+                        type="button"
+                        onClick={() => setActiveChatRequestId(item.id)}
+                        className={cx(
+                          "rounded-full border px-3 py-1 text-xs font-bold transition hover:border-[#1f883d] hover:text-[#1f883d]",
+                          activeChatRequestId === item.id
+                            ? "border-[#1f883d] text-[#1f883d]"
+                            : isDark
+                              ? "border-[#30363d] text-slate-200"
+                              : "border-stone-300 text-stone-700",
+                        )}
+                      >
+                        チャットを開く
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className={`rounded-full px-3 py-1 text-xs font-medium ${
-                    item.status === "active"
-                      ? "bg-[#fbe4da] text-[#9c4227]"
-                      : ui.resolved
-                  }`}>
-                    {item.status === "active" ? "募集中" : "解決済み"}
-                  </span>
-                  {item.status === "active" ? (
-                    <button
-                      type="button"
-                      onClick={() => resolveMutation.mutate(item.id)}
-                      className={cx(
-                        "rounded-full border px-3 py-1 text-xs font-bold transition hover:border-[#ffab70] hover:text-[#ffab70]",
-                        isDark ? "border-[#30363d] text-slate-200" : "border-stone-300 text-stone-700",
-                      )}
-                    >
-                      対応する
-                    </button>
-                  ) : item.chat_id &&
-                    (item.user_id === currentUserId || item.responder_user_id === currentUserId) ? (
-                    <button
-                      type="button"
-                      onClick={() => setActiveChatRequestId(item.id)}
-                      className={cx(
-                        "rounded-full border px-3 py-1 text-xs font-bold transition hover:border-[#1f883d] hover:text-[#1f883d]",
-                        activeChatRequestId === item.id
-                          ? "border-[#1f883d] text-[#1f883d]"
-                          : isDark
-                            ? "border-[#30363d] text-slate-200"
-                            : "border-stone-300 text-stone-700",
-                      )}
-                    >
-                      チャットを開く
-                    </button>
-                  ) : null}
-                </div>
-              </div>
-            </article>
-          ))
+              </article>
+            );
+          })
         )}
       </div>
 

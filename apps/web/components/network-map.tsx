@@ -115,11 +115,13 @@ export function NetworkMap({
   nodes,
   edges,
   selectedUserId,
+  currentUserId,
   initialTheme,
 }: {
   nodes: NetworkNode[];
   edges: NetworkEdge[];
   selectedUserId: string;
+  currentUserId?: string;
   initialTheme?: ThemeName;
 }) {
   const [theme, setTheme] = useState<ThemeName>(initialTheme ?? "light");
@@ -132,6 +134,7 @@ export function NetworkMap({
   const simulationRef = useRef<PositionedNode[]>([]);
   const palette = palettes[theme];
   const focusedNode = positions.find((node) => node.id === focusedId) ?? positions[0];
+  const starUserId = currentUserId ?? selectedUserId;
 
   useEffect(() => {
     if (initialTheme) {
@@ -227,6 +230,15 @@ export function NetworkMap({
       edge.from_user_id === focusedId
         ? [edge.to_user_id]
         : edge.to_user_id === focusedId
+          ? [edge.from_user_id]
+          : [],
+    ),
+  );
+  const starNeighborIds = new Set(
+    edges.flatMap((edge) =>
+      edge.from_user_id === starUserId
+        ? [edge.to_user_id]
+        : edge.to_user_id === starUserId
           ? [edge.from_user_id]
           : [],
     ),
@@ -335,6 +347,7 @@ export function NetworkMap({
                   return null;
                 }
                 const active = edge.from_user_id === focusedId || edge.to_user_id === focusedId;
+                const direct = edge.from_user_id === starUserId || edge.to_user_id === starUserId;
                 return (
                   <line
                     key={edge.id}
@@ -342,9 +355,9 @@ export function NetworkMap({
                     y1={source.y}
                     x2={target.x}
                     y2={target.y}
-                    stroke={active ? palette.edgeActive : palette.edge}
-                    strokeOpacity={active ? 0.9 : 0.42}
-                    strokeWidth={active ? Math.max(edge.strength, 2.5) : 1.4}
+                    stroke={direct ? "#1f883d" : active ? palette.edgeActive : palette.edge}
+                    strokeOpacity={direct ? 0.95 : active ? 0.9 : 0.42}
+                    strokeWidth={direct ? Math.max(edge.strength + 0.8, 3.2) : active ? Math.max(edge.strength, 2.5) : 1.4}
                   />
                 );
               })}
@@ -354,6 +367,8 @@ export function NetworkMap({
               {positions.map((node) => {
                 const focused = node.id === focusedId;
                 const selected = node.id === selectedUserId;
+                const star = node.id === starUserId;
+                const starNeighbor = starNeighborIds.has(node.id);
                 const connected = connectedIds.has(node.id);
                 const color = roleColor(node.nodeRole, theme);
                 const labelW = labelWidth(node.name);
@@ -373,14 +388,23 @@ export function NetworkMap({
                         strokeWidth="12"
                       />
                     ) : null}
+                    {starNeighbor && !star ? (
+                      <circle
+                        cx={node.x}
+                        cy={node.y}
+                        r="27"
+                        fill="#1f883d"
+                        opacity={theme === "dark" ? 0.18 : 0.12}
+                      />
+                    ) : null}
                     <circle
                       cx={node.x}
                       cy={node.y}
-                      r={selected ? 17 : 13}
+                      r={star ? 20 : selected ? 17 : 13}
                       fill={color}
-                      opacity={focused || connected || selected ? 1 : 0.74}
+                      opacity={focused || connected || selected || starNeighbor ? 1 : 0.74}
                       stroke={theme === "dark" ? "#0f172a" : "#ffffff"}
-                      strokeWidth={selected ? 4 : 2}
+                      strokeWidth={star ? 5 : selected ? 4 : 2}
                       onPointerDown={(event) => {
                         event.currentTarget.setPointerCapture(event.pointerId);
                         setDraggingId(node.id);
@@ -407,15 +431,15 @@ export function NetworkMap({
                         height="44"
                         rx="7"
                         fill={palette.labelFill}
-                        stroke={focused ? palette.edgeActive : palette.labelStroke}
-                        strokeWidth={focused ? 2 : 1}
-                        opacity={focused || connected || selected ? 0.98 : 0.9}
+                        stroke={star ? "#1f883d" : focused ? palette.edgeActive : starNeighbor ? "#85e89d" : palette.labelStroke}
+                        strokeWidth={star || focused ? 2 : 1}
+                        opacity={focused || connected || selected || starNeighbor ? 0.98 : 0.9}
                       />
                       <text
                         x={labelX + 12}
                         y={labelY + 18}
                         fill={palette.labelText}
-                        className="text-[12px] font-semibold"
+                        className={star ? "text-[12px] font-black" : "text-[12px] font-semibold"}
                       >
                         {node.name}
                       </text>

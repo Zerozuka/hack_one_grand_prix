@@ -73,7 +73,7 @@ def build_user_tag_index(db: Session, user_ids: list[str] | None = None) -> dict
 
 
 def compute_user_points(user: User, relationships: list[Relationship], users_by_id: dict[str, User]) -> int:
-    points = 0
+    points = getattr(user, "bonus_points", 0) or 0
     for relationship in relationships:
         if relationship.from_user_id == user.id or relationship.to_user_id == user.id:
             other_id = relationship.to_user_id if relationship.from_user_id == user.id else relationship.from_user_id
@@ -81,6 +81,40 @@ def compute_user_points(user: User, relationships: list[Relationship], users_by_
             cross_group = bool(other and other.group_code != user.group_code)
             points += 10 + (5 if cross_group else 0) + (relationship.strength - 3) * 2
     return max(0, points)
+
+
+def _tag_set(tags: dict[str, list[str]]) -> set[str]:
+    return {
+        value
+        for key in ("interests", "goals", "activity_tags")
+        for value in tags.get(key, [])
+        if value
+    }
+
+
+def compute_sos_matches(
+    request: SosRequest,
+    users_by_id: dict[str, User],
+    user_tags: dict[str, dict[str, list[str]]],
+    limit: int = 3,
+) -> list[str]:
+    requester_tags = _tag_set(user_tags.get(request.user_id, {}))
+    if not requester_tags:
+        return []
+
+    scored: list[tuple[float, str]] = []
+    for user_id, user in users_by_id.items():
+        if user_id == request.user_id:
+            continue
+        candidate_tags = _tag_set(user_tags.get(user_id, {}))
+        if not candidate_tags:
+            continue
+        score = len(requester_tags & candidate_tags) / len(requester_tags | candidate_tags)
+        if score > 0:
+            scored.append((score, user_id))
+
+    scored.sort(key=lambda item: (-item[0], users_by_id[item[1]].name))
+    return [user_id for _, user_id in scored[:limit]]
 
 
 def compute_user_badges(user: User, relationships: list[Relationship], users_by_id: dict[str, User], user_tags: dict[str, dict[str, list[str]]]) -> list[dict[str, str]]:
@@ -202,6 +236,7 @@ def list_community_sos(db: Session, community_id: str, users_by_id: dict[str, Us
     for response in responses:
         response_by_request.setdefault(response.request_id, response)
     chat_by_request = {chat.request_id: chat for chat in chats}
+    user_tags = build_user_tag_index(db, list(users_by_id))
     return [
         SosOut(
             id=row.id,
@@ -217,6 +252,7 @@ def list_community_sos(db: Session, community_id: str, users_by_id: dict[str, Us
             if row.id in response_by_request and response_by_request[row.id].responder_user_id in users_by_id
             else None,
             chat_id=chat_by_request[row.id].id if row.id in chat_by_request else None,
+            matched_user_ids=compute_sos_matches(row, users_by_id, user_tags) if row.status == SosStatus.active else [],
         )
         for row in rows
     ]

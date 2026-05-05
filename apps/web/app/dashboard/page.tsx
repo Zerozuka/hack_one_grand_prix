@@ -92,6 +92,7 @@ type DashboardData = {
     responder_user_id: string | null;
     responder_name: string | null;
     chat_id: string | null;
+    matched_user_ids: string[];
   }>;
   introductions: Array<{
     title: string;
@@ -271,6 +272,7 @@ export default async function DashboardPage({
     const { me, dashboard, courses, communityId, mode, courseQuery, view, theme } =
       await loadDashboard(searchParams);
     const activeSosCount = dashboard.sos.filter((item) => item.status === "active").length;
+    const liveDiscussionCount = dashboard.events.filter((event) => event.is_live).length;
     const isDark = theme === "dark";
     const colors = {
       page: isDark
@@ -320,7 +322,7 @@ export default async function DashboardPage({
       overview: "",
       network: dashboard.users.length,
       sos: activeSosCount,
-      sync: dashboard.recommendations.length,
+      sync: liveDiscussionCount,
       courses: courses.length,
     };
 
@@ -469,26 +471,31 @@ export default async function DashboardPage({
 
                 <div className="grid gap-4">
                   {[
-                    ["Active SOS", activeSosCount, "今すぐ反応できる相談", colors.danger],
-                    ["Network", dashboard.users.length, "可視化された知見ノード", isDark ? "bg-[#10243e] text-[#79c0ff]" : "bg-[#ddf4ff] text-[#0969da]"],
-                    ["5分Sync", dashboard.recommendations.length, "おすすめ接続候補", isDark ? "bg-[#132d1d] text-[#7ee787]" : "bg-[#dafbe1] text-[#116329]"],
-                  ].map(([label, value, body, accent]) => (
-                    <article key={label} className={cx("rounded-xl border p-5 shadow-sm", colors.section)}>
+                    { viewId: "sos" as ViewName, label: "Active SOS", value: activeSosCount, body: "今すぐ反応できる相談", accent: colors.danger },
+                    { viewId: "network" as ViewName, label: "Network", value: dashboard.users.length, body: "可視化された知見ノード", accent: isDark ? "bg-[#10243e] text-[#79c0ff]" : "bg-[#ddf4ff] text-[#0969da]" },
+                    { viewId: "sync" as ViewName, label: "Sync Live", value: liveDiscussionCount, body: "進行中の5分Sync議論", accent: isDark ? "bg-[#132d1d] text-[#7ee787]" : "bg-[#dafbe1] text-[#116329]" },
+                    { viewId: "sync" as ViewName, label: "5分Sync", value: dashboard.recommendations.length, body: "おすすめ接続候補", accent: isDark ? "bg-[#3b2f0b] text-[#facc15]" : "bg-[#fff8c5] text-[#9a6700]" },
+                  ].map((item) => (
+                    <a
+                      key={item.label}
+                      href={href({ view: item.viewId })}
+                      className={cx("block rounded-xl border p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg", colors.section)}
+                    >
                       <div className="flex items-center justify-between gap-4">
                         <div>
                           <p className={cx("text-xs font-bold uppercase tracking-[0.22em]", colors.muted)}>
-                            {label}
+                            {item.label}
                           </p>
                           <p className={cx("mt-2 text-5xl font-black tracking-[-0.06em]", colors.text)}>
-                            {value}
+                            {item.value}
                           </p>
                         </div>
-                        <span className={cx("rounded-full px-3 py-1 text-xs font-bold", String(accent))}>
+                        <span className={cx("rounded-full px-3 py-1 text-xs font-bold", item.accent)}>
                           Live
                         </span>
                       </div>
-                      <p className={cx("mt-3 text-sm", colors.muted)}>{body}</p>
-                    </article>
+                      <p className={cx("mt-3 text-sm", colors.muted)}>{item.body}</p>
+                    </a>
                   ))}
                 </div>
               </section>
@@ -604,6 +611,7 @@ export default async function DashboardPage({
                 }))}
                 edges={dashboard.relationships}
                 selectedUserId={dashboard.selected_user.id}
+                currentUserId={me.user.id}
                 initialTheme={theme}
               />
               <aside className="space-y-4">

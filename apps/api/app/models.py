@@ -72,6 +72,7 @@ class User(Base):
     node_role: Mapped[NodeRole] = mapped_column(Enum(NodeRole, name="node_role"))
     availability: Mapped[str | None] = mapped_column(String(128), nullable=True)
     bio: Mapped[str] = mapped_column(Text, default="")
+    bonus_points: Mapped[int] = mapped_column(Integer, default=0)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
