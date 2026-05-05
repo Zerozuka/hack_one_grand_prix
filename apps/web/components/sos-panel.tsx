@@ -78,6 +78,8 @@ export function SosPanel({
   const queryClient = useQueryClient();
   const [topic, setTopic] = useState("");
   const [message, setMessage] = useState("");
+  const [showEscalate, setShowEscalate] = useState(false);
+  const [escalateLocation, setEscalateLocation] = useState("");
   const [activeChatRequestId, setActiveChatRequestId] = useState<string | null>(
     initialItems.find(
       (item) =>
@@ -160,6 +162,31 @@ export function SosPanel({
       setMessage("");
       await queryClient.invalidateQueries({ queryKey: ["sos-chat", activeChatRequestId] });
       await queryClient.invalidateQueries({ queryKey: ["sos", communityId] });
+    },
+  });
+
+  const escalateMutation = useMutation({
+    mutationFn: async () => {
+      const chat = chatQuery.data;
+      const response = await fetch("/api/proxy/v1/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          community_id: communityId,
+          title: chat?.topic ?? "SOS議論",
+          time_label: "今すぐ",
+          format: "対面議論",
+          is_live: true,
+          location: escalateLocation,
+          sos_request_id: activeChatRequestId,
+        }),
+      });
+      if (!response.ok) throw new Error(await response.text());
+      return response.json();
+    },
+    onSuccess: () => {
+      setEscalateLocation("");
+      setShowEscalate(false);
     },
   });
 
@@ -332,6 +359,38 @@ export function SosPanel({
               {sendMessageMutation.isPending ? "送信中..." : "送信"}
             </button>
           </div>
+
+          {!showEscalate ? (
+            <button
+              type="button"
+              onClick={() => setShowEscalate(true)}
+              className={cx(
+                "mt-3 w-full rounded-xl border px-4 py-2 text-sm font-bold transition",
+                isDark
+                  ? "border-[#30363d] text-[#7ee787] hover:border-[#7ee787] hover:bg-[#0d1117]"
+                  : "border-[#a5d6a7] text-[#2e7d32] hover:bg-[#f1f8e9]",
+              )}
+            >
+              📍 対面で議論しよう
+            </button>
+          ) : (
+            <div className="mt-3 grid gap-2 md:grid-cols-[1fr_auto]">
+              <input
+                value={escalateLocation}
+                onChange={(e) => setEscalateLocation(e.target.value)}
+                placeholder="場所を入力 (例: 図書館 3F 窓際)"
+                className={cx("rounded-xl border px-4 py-2 text-sm outline-none transition", ui.input)}
+              />
+              <button
+                type="button"
+                disabled={!escalateLocation.trim() || escalateMutation.isPending}
+                onClick={() => escalateMutation.mutate()}
+                className="rounded-xl bg-[#2e7d32] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#1b5e20] disabled:cursor-not-allowed disabled:bg-stone-400"
+              >
+                {escalateMutation.isPending ? "投稿中..." : "開始"}
+              </button>
+            </div>
+          )}
         </section>
       ) : null}
     </section>

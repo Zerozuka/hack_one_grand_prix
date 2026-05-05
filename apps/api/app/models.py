@@ -158,6 +158,10 @@ class Event(Base):
     title: Mapped[str] = mapped_column(String(255))
     time_label: Mapped[str] = mapped_column(String(255))
     format: Mapped[str] = mapped_column(Text)
+    is_live: Mapped[bool] = mapped_column(Boolean, default=False)
+    location: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    sos_request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    creator_user_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
     community: Mapped["Community"] = relationship(back_populates="events")
     participants: Mapped[list["EventParticipant"]] = relationship(back_populates="event", cascade="all, delete-orphan")

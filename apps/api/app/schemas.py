@@ -82,6 +82,10 @@ class EventOut(BaseModel):
     format: str
     participant_ids: list[str]
     participant_names: list[str]
+    is_live: bool = False
+    location: str | None = None
+    sos_request_id: str | None = None
+    creator_user_id: str | None = None
 
 
 class EventUpsert(BaseModel):
@@ -90,6 +94,9 @@ class EventUpsert(BaseModel):
     time_label: str
     format: str
     participant_ids: list[str] = Field(default_factory=list)
+    is_live: bool = False
+    location: str | None = None
+    sos_request_id: str | None = None
 
 
 class CourseOut(BaseModel):
