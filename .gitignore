@@ -14,4 +14,5 @@ apps/api/.coverage
 apps/api/alembic/__pycache__/
 apps/web/.next/
 packages/contracts/src/generated/
+*.tsbuildinfo
 

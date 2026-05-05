@@ -176,6 +176,10 @@ def list_community_events(db: Session, community_id: str, users_by_id: dict[str,
                 format=event.format,
                 participant_ids=ids,
                 participant_names=[users_by_id[user_id].name for user_id in ids if user_id in users_by_id],
+                is_live=event.is_live,
+                location=event.location,
+                sos_request_id=event.sos_request_id,
+                creator_user_id=event.creator_user_id,
             )
         )
     return results

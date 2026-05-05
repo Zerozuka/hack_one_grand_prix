@@ -5,6 +5,7 @@ import { toQueryString } from "@/lib/utils";
 import { LogoutButton } from "@/components/logout-button";
 import { NetworkMap } from "@/components/network-map";
 import { SosPanel } from "@/components/sos-panel";
+import { DiscussionBoard } from "@/components/discussion-board";
 import { redirect } from "next/navigation";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -61,10 +62,16 @@ type DashboardData = {
   }>;
   events: Array<{
     id: string;
+    community_id: string;
     title: string;
     time_label: string;
     format: string;
+    participant_ids: string[];
     participant_names: string[];
+    is_live: boolean;
+    location: string | null;
+    sos_request_id: string | null;
+    creator_user_id: string | null;
   }>;
   ranking: Array<{
     rank: number;
@@ -688,71 +695,12 @@ export default async function DashboardPage({
           ) : null}
 
           {view === "sync" ? (
-            <section className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
-              <aside className={cx("overflow-hidden rounded-xl border shadow-sm", colors.section)}>
-                <SyncIllustration dark={isDark} />
-                <div className="p-5">
-                  <p className={cx("text-xs font-bold uppercase tracking-[0.22em]", colors.muted)}>5分Sync</p>
-                  <h2 className={cx("mt-2 text-2xl font-black tracking-[-0.04em]", colors.text)}>
-                    推薦の見方を選ぶ
-                  </h2>
-                  <div className="mt-5 grid gap-2">
-                    {[
-                      ["bridge", "橋渡し重視"],
-                      ["complementary", "補完重視"],
-                      ["similar", "共通点重視"],
-                    ].map(([value, label]) => (
-                      <a
-                        key={value}
-                        href={href({ view: "sync", mode: value })}
-                        className={cx(
-                          "rounded-lg border px-4 py-3 text-sm font-bold transition",
-                          mode === value
-                            ? isDark
-                              ? "border-[#7ee787] bg-[#132d1d] text-[#7ee787]"
-                              : "border-[#1f883d] bg-[#dafbe1] text-[#116329]"
-                            : colors.soft,
-                        )}
-                      >
-                        {label}
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              </aside>
-
-              <section className="grid gap-4 md:grid-cols-2">
-                {dashboard.recommendations.map((item) => (
-                  <article key={item.user.id} className={cx("rounded-xl border p-5 shadow-sm", colors.section)}>
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <p className={cx("text-xl font-black tracking-[-0.04em]", colors.text)}>
-                          {item.user.name}
-                        </p>
-                        <p className={cx("mt-1 text-sm", colors.muted)}>{item.user.group_label}</p>
-                      </div>
-                      <div className={cx("rounded-full px-3 py-1 text-sm font-black", colors.danger)}>
-                        {item.score}
-                      </div>
-                    </div>
-                    <p className={cx("mt-4 text-sm leading-7", colors.muted)}>{item.user.bio}</p>
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {item.reasons.map((reason) => (
-                        <span
-                          key={reason}
-                          className={cx(
-                            "rounded-full px-3 py-1 text-xs font-semibold",
-                            isDark ? "bg-[#30363d] text-slate-200" : "bg-[#eaeef2] text-[#24292f]",
-                          )}
-                        >
-                          {reason}
-                        </span>
-                      ))}
-                    </div>
-                  </article>
-                ))}
-              </section>
-            </section>
+            <DiscussionBoard
+              communityId={communityId}
+              currentUserId={dashboard.selected_user.id}
+              initialEvents={dashboard.events}
+              theme={theme}
+            />
           ) : null}
 
           {view === "courses" ? (

@@ -522,22 +522,33 @@ def create_event(
     context: RequestContext = Depends(get_request_context),
     db: Session = Depends(get_db),
 ) -> EventOut:
-    ensure_can_manage(context, payload.community_id)
+    if payload.is_live:
+        if context.role_for(payload.community_id) is None and not context.is_platform_admin():
+            raise HTTPException(status_code=403, detail="Forbidden")
+    else:
+        ensure_can_manage(context, payload.community_id)
     event = Event(
         id=f"event-{uuid4()}",
         community_id=payload.community_id,
         title=payload.title,
         time_label=payload.time_label,
         format=payload.format,
+        is_live=payload.is_live,
+        location=payload.location,
+        sos_request_id=payload.sos_request_id,
+        creator_user_id=context.user.id,
     )
     db.add(event)
     db.flush()
+    db.add(EventParticipant(event_id=event.id, user_id=context.user.id))
     for participant_id in payload.participant_ids:
-        db.add(EventParticipant(event_id=event.id, user_id=participant_id))
+        if participant_id != context.user.id:
+            db.add(EventParticipant(event_id=event.id, user_id=participant_id))
     log_action(db, context.user.id, "create", "event", event.id, payload.title)
     db.commit()
     users = list_community_users(db, payload.community_id)
-    return list_community_events(db, payload.community_id, {user.id: user for user in users})[-1]
+    events = list_community_events(db, payload.community_id, {user.id: user for user in users})
+    return next(e for e in events if e.id == event.id)
 
 
 @router.patch("/events/{event_id}", response_model=EventOut)
@@ -577,6 +588,59 @@ def delete_event(
     log_action(db, context.user.id, "delete", "event", event.id, event.title)
     db.commit()
     return {"status": "ok"}
+
+
+@router.post("/events/{event_id}/join", response_model=EventOut)
+def join_event(
+    event_id: str,
+    context: RequestContext = Depends(get_request_context),
+    db: Session = Depends(get_db),
+) -> EventOut:
+    event = db.get(Event, event_id)
+    if event is None:
+        raise HTTPException(status_code=404, detail="Event not found")
+    if context.role_for(event.community_id) is None and not context.is_platform_admin():
+        raise HTTPException(status_code=403, detail="Forbidden")
+    existing = db.scalar(
+        select(EventParticipant).where(
+            EventParticipant.event_id == event_id,
+            EventParticipant.user_id == context.user.id,
+        )
+    )
+    if existing is None:
+        db.add(EventParticipant(event_id=event_id, user_id=context.user.id))
+        log_action(db, context.user.id, "join", "event", event_id, event.title)
+        db.commit()
+    users = list_community_users(db, event.community_id)
+    events = list_community_events(db, event.community_id, {user.id: user for user in users})
+    return next(e for e in events if e.id == event_id)
+
+
+@router.post("/events/{event_id}/end", response_model=EventOut)
+def end_event(
+    event_id: str,
+    context: RequestContext = Depends(get_request_context),
+    db: Session = Depends(get_db),
+) -> EventOut:
+    event = db.get(Event, event_id)
+    if event is None:
+        raise HTTPException(status_code=404, detail="Event not found")
+    is_creator = event.creator_user_id == context.user.id
+    is_participant = db.scalar(
+        select(EventParticipant).where(
+            EventParticipant.event_id == event_id,
+            EventParticipant.user_id == context.user.id,
+        )
+    ) is not None
+    can_manage = context.can_manage(event.community_id)
+    if not (is_creator or is_participant or can_manage):
+        raise HTTPException(status_code=403, detail="Forbidden")
+    event.is_live = False
+    log_action(db, context.user.id, "end", "event", event_id, event.title)
+    db.commit()
+    users = list_community_users(db, event.community_id)
+    events = list_community_events(db, event.community_id, {user.id: user for user in users})
+    return next(e for e in events if e.id == event_id)
 
 
 @router.get("/courses", response_model=list[CourseListItem])
