@@ -1,291 +1,410 @@
 # TODO — Knowledge Mesh 実装タスク
 
-> このファイルは `/prp-plan` に渡して実装計画を生成するための仕様書です.
-> 各タスクは独立して実装可能なスコープに切り出しています.
+各 Issue は **完全に独立して作業できる単位**.
+Issue をひとつ選んで中のタスクを上から順に実装すれば完結する.
+フロントエンド・バックエンドを問わず, 1人で最初から最後まで完結できるよう記述してある.
 
 ---
 
 ## 優先度 1 — デモで必ず見せる機能
 
-### TASK-01: SOS スキルマッチ — 返答できる人をハイライト表示
+### Issue-16: Home — 「高校のクラスで議論していたあの感覚」に寄せた Overview 再設計
 
-**目的**
-SOS が投稿された時, 投稿者のタグ (interests / goals / activity_tags) と近い別ユーザーに「あなたが答えられます」バッジを表示する.
-現状は全ユーザーに同じ「対応する」ボタンが出るだけで, ルーティングが機能していない.
+**背景 (insight.md より)**
+> 現在の Home Overview は一目見ると SOS を出して知見ネットワークで5分接続するのだろうかという
+> ふうに見える. 大学生が高校の頃のように切磋琢磨して議論・質問できる場所に見せたい.
 
-**変更ファイル**
-- `apps/api/app/schemas.py` — `SosOut` に `matched_user_ids: list[str]` フィールドを追加
-- `apps/api/app/services.py` — SOS一覧取得時に, 投稿者のタグと各ユーザーのタグをJaccard similarityで比較し, スコア上位3名のIDを `matched_user_ids` に入れる
-- `apps/api/app/routers.py` — `list_community_sos` の serialize に `matched_user_ids` を渡す
-- `apps/web/components/sos-panel.tsx` — `SosItem` 型に `matched_user_ids: string[]` を追加. 現在ログインしているユーザーのIDが `matched_user_ids` に含まれる場合, 「対応する」ボタンを強調色 (オレンジ背景) にし「あなたが答えられます」ラベルを追加
+また「数学・情報・物理系の知見ネットワークをベースに、物理的に近い人をすばやく見つける」という
+文言は GPS 機能が未実装のため **誤解を招く表現** なので削除する.
 
-**受け入れ条件**
-- `yuki` (数学系) がSOSを出したとき, 数学タグを持つ `haruto` の「対応する」ボタンが強調表示される
-- タグが一致しないユーザーのボタンは通常表示のまま
+**ファイル**: `apps/web/app/dashboard/page.tsx`
 
----
+- [ ] Home ビューのヒーロー見出し・サブコピーを書き換える
+  - Before: 「SOS を出して...知見ネットワーク...5分接続」
+  - After: 「今日も誰かが困っている. 5分の会話で, 理解が変わる.」などの表現
+- [ ] GPS/物理距離に言及するコピーを全て削除する
+- [ ] 3〜4枚のサマリーカードを以下の内容に整理する
 
-### TASK-02: Sync タブのカウンターをライブ議論数に修正
+  | カード | 表示内容 | リンク先 |
+  |--------|----------|----------|
+  | Help | アクティブな質問数 | `?view=help` |
+  | Discussion | ライブ議論数 | `?view=discussion` |
+  | My Class | 自分のネットワーク人数 | `?view=my-class` |
+  | Syllabus | 科目数 (任意) | `?view=syllabus` |
 
-**目的**
-現状 `sync` タブのバッジ数が `dashboard.recommendations.length` (推薦人数) になっている.
-正しくは「今ライブ議論中の件数」を表示すべき.
-
-**変更ファイル**
-- `apps/web/app/dashboard/page.tsx` の `tabCounts` 定義 (約322行目)
-
-**変更内容**
-```typescript
-// Before
-sync: dashboard.recommendations.length,
-
-// After
-sync: dashboard.events.filter((e) => e.is_live).length,
-```
-
-**受け入れ条件**
-- ライブ議論が0件のとき sync タブのバッジは表示されない (または "0")
-- ライブ議論が2件あるとき sync タブに "2" が表示される
+- [ ] 各カードをクリックするとそのビューに遷移することを確認
+- [ ] Home の印象が「SOS ツール」ではなく「学習コミュニティの入口」に変わっていることを確認
 
 ---
 
-### TASK-03: Overview に「今ライブ議論中」カードを追加
+### Issue-11: Discussion — 場所フィールドを復元する (リグレッション修正)
 
-**目的**
-overview 画面に Sync ビューへの入口がなく, 議論ボードの存在に気づかれにくい.
-Active SOS / Network / 5分Sync の3カードに加えて「Sync Live」カードを追加し, sync ビューへ誘導する.
+**背景**
+PDFスライド17「議論ボード」では「📍 中央食堂で統計学の議論中」と **場所情報** が核心UXとして
+示されている. 自動整形ツールが場所入力フィールドを削除したため復元が必要.
 
-**変更ファイル**
-- `apps/web/app/dashboard/page.tsx` の overview セクション (約470行目の3カードを4カードに拡張)
+**ファイル**: `apps/web/components/discussion-board.tsx`
 
-**変更内容**
-既存の3カード配列に以下を追加:
-```typescript
-["Sync Live", dashboard.events.filter((e) => e.is_live).length, "今ここで議論中のトピック", isDark ? "bg-[#132d1d] text-[#7ee787]" : "bg-[#dafbe1] text-[#116329]"],
-```
-カードクリック時に `?view=sync` へ遷移するリンクにする.
+- [ ] `location` state を復元: `const [location, setLocation] = useState("")`
+- [ ] `createMutation` の body を修正
 
-**受け入れ条件**
-- overview に4枚目のカードが表示される
-- カードをクリックすると sync ビューに遷移する
-- ライブ議論件数が正しく表示される
+  ```typescript
+  body: JSON.stringify({
+    community_id: communityId,
+    title: newTopic,
+    time_label: "今すぐ",
+    format: "対面議論",
+    is_live: true,
+    location: location.trim() || null,
+  }),
+  ```
 
----
+  成功後に `setLocation("")` もリセット.
+- [ ] フォームを3カラムグリッドに変更 (場所 / トピック / ボタン)
 
-### TASK-04: SOS 返答・議論参加でポイント加算
+  ```tsx
+  <div className="mt-6 grid gap-3 md:grid-cols-[1fr_1fr_auto]">
+    <input
+      value={location}
+      onChange={(e) => setLocation(e.target.value)}
+      placeholder="場所 (例: 中央食堂, 図書館3F)"
+      className={cx(...)}
+    />
+    <input
+      value={newTopic}
+      onChange={(e) => setNewTopic(e.target.value)}
+      placeholder="トピック (例: 統計学の検定手法)"
+      className={cx(...)}
+    />
+    <button ...>議論を始める</button>
+  </div>
+  ```
 
-**目的**
-現状ポイントは `compute_user_points` で relationship の数から動的に計算されるのみ.
-SOS に返答したとき・ライブ議論に参加したときに, ポイントが増える仕組みを作る.
-
-**現状確認**
-- `User` モデルに `points` カラムは存在しない (毎回 `compute_user_points` で計算)
-- ゲーミフィケーションのインセンティブが「エッジを増やす」以外にない
-
-**変更内容**
-
-Step 1 — `User` モデルに `bonus_points` カラムを追加:
-- `apps/api/app/models.py` に `bonus_points: Mapped[int] = mapped_column(Integer, default=0)` を追加
-- `apps/api/alembic/versions/0005_bonus_points.py` を作成
-
-Step 2 — ポイント計算を拡張:
-- `apps/api/app/services.py` の `compute_user_points` で `user.bonus_points` を加算する
-
-Step 3 — ポイント付与ロジックを追加:
-- `apps/api/app/routers.py` の `respond_sos` エンドポイントで返答者に `+20` bonus_points を付与
-- `apps/api/app/routers.py` の `join_event` エンドポイントで参加者に `+10` bonus_points を付与
-
-**受け入れ条件**
-- SOS に返答するとランキングのポイントが +20 増える
-- ライブ議論に参加するとポイントが +10 増える
-- `alembic upgrade head` が通る
+- [ ] イベントカードで `📍 {event.location}` が表示されることを確認
+- [ ] 場所なし (空欄) でも投稿可能 (optional フィールド) であることを確認
 
 ---
 
-### TASK-05: Network view — 自分起点のスター型強調表示
+### Issue-02: Help — タグのDB永続化
 
-**目的**
-現状 NetworkMap はすべてのノードを同色・同サイズで表示する.
-ログインユーザーのノードを大きく表示し, 直接つながっている1ホップのエッジを強調色にすることで
-「自分のクラス (スター型ネットワーク)」を視覚的に表現する.
+**背景 (insight.md より)**
+> 質問タグは複数つけることができるようにする. 例えば「微分方程式」「線形代数」「Python」など.
+> タグを押すと同じタグの質問を探すことができるようにする.
 
-**変更ファイル**
-- `apps/web/components/network-map.tsx`
+**概要**: 質問投稿時のタグをDBに保存し, 一覧取得時に返す. Issue-17 (タグ検索) の前提.
 
-**変更内容**
-- ログインユーザーのノードを半径 `r=14` (通常は `r=8`) で表示
-- ログインユーザーに直接つながるエッジを `stroke: #1f883d, strokeWidth: 2` で強調
-- 1ホップ以内のノードに薄いハイライト背景を追加
-- ログインユーザーのノードラベルを太字にする
+#### バックエンド — `apps/api/`
 
-**受け入れ条件**
-- ログインユーザーのノードが他より大きく表示される
-- 直接の繋がりのエッジが緑色で目立つ
-- 2ホップ以上のエッジはグレーのまま
+- [ ] `apps/api/app/models.py` の `SosRequest` に tags カラムを追加
+
+  ```python
+  tags: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
+  ```
+
+- [ ] `apps/api/alembic/versions/0006_sos_tags.py` を新規作成
+
+  ```python
+  def upgrade():
+      op.add_column(
+          "sos_requests",
+          sa.Column("tags", postgresql.ARRAY(sa.String()), nullable=False, server_default="{}"),
+      )
+  def downgrade():
+      op.drop_column("sos_requests", "tags")
+  ```
+
+- [ ] `apps/api/app/schemas.py` の `SosCreate` に `tags: list[str] = []` を追加
+- [ ] `apps/api/app/schemas.py` の `SosOut` に `tags: list[str] = []` を追加
+- [ ] `apps/api/app/routers.py` の `create_sos` で `SosRequest(... tags=body.tags)` を追加
+- [ ] `apps/api/app/routers.py` の serialize 部分に `tags=req.tags` を追加
+- [ ] `alembic upgrade head` を実行してマイグレーションを適用
+
+#### フロントエンド — `apps/web/components/sos-panel.tsx`
+
+- [ ] `HelpItem` 型に `tags: string[]` を追加
+- [ ] 各 Help カードで `item.tags` をバッジとして表示する
+- [ ] タグのローカル state (`itemTags`) を廃止する (APIから取得した値を使う)
+- [ ] 投稿フォームの `tags: questionTags` はそのまま (変更なし)
+- [ ] Help タブで投稿 → リロード後もタグがカードに表示されることを確認
+
+---
+
+### Issue-17: Help — タグによる質問フィルタリング
+
+**背景 (insight.md より)**
+> タグを押すと同じタグの質問を探すことができるようにする.
+
+**前提**: Issue-02 完了後に着手.
+
+**ファイル**: `apps/web/components/sos-panel.tsx`
+
+- [ ] `activeTag: string | null` の state を追加
+- [ ] 質問カード内のタグバッジをクリックすると `activeTag` にセットする
+
+  ```tsx
+  <button
+    onClick={() => setActiveTag(tag === activeTag ? null : tag)}
+    className={cx(
+      "rounded-full px-2 py-0.5 text-xs font-bold transition",
+      tag === activeTag ? "bg-orange-500 text-white" : "bg-stone-100 text-stone-600 hover:bg-stone-200"
+    )}
+  >
+    {tag}
+  </button>
+  ```
+
+- [ ] Help 一覧を `activeTag` でフィルタリング
+
+  ```tsx
+  const filtered = activeTag
+    ? sosItems.filter((item) => item.tags.includes(activeTag))
+    : sosItems;
+  ```
+
+- [ ] アクティブなタグの上部に「{activeTag} でフィルター中」バナーと「× クリア」ボタンを表示
+- [ ] タグをもう一度押すとフィルターが解除されることを確認
+
+---
+
+### Issue-03: Help — 投稿者による Close 機能
+
+**背景 (insight.md より)**
+> 解決した質問に対しては Github のように Close することができる.
+
+#### バックエンド — `apps/api/app/routers.py`
+
+- [ ] `POST /sos/{request_id}/close` エンドポイントを追加
+
+  ```python
+  @router.post("/sos/{request_id}/close")
+  async def close_sos(
+      request_id: str,
+      context: Context = Depends(get_context),
+      db: Session = Depends(get_db),
+  ):
+      req = db.get(SosRequest, request_id)
+      if req is None:
+          raise HTTPException(404, "SOS request not found")
+      if req.user_id != context.user.id:
+          raise HTTPException(403, "Only the author can close this request")
+      req.status = SosStatus.resolved
+      req.resolved_at = datetime.utcnow()
+      db.commit()
+      db.refresh(req)
+      return serialize_sos(req, context.user.id, db)
+  ```
+
+- [ ] `curl -X POST /api/v1/sos/{id}/close` で 200 が返ることを確認
+- [ ] 他人の質問に対して 403 が返ることを確認
+
+#### フロントエンド — `apps/web/components/sos-panel.tsx`
+
+- [ ] 自分の投稿にのみ「Close」ボタンを表示 (GitHub の Issue Close に近いデザイン)
+- [ ] `POST /api/proxy/v1/sos/${requestId}/close` を呼ぶ
+
+  ```ts
+  const res = await fetch(`/api/proxy/v1/sos/${requestId}/close`, { method: "POST" });
+  if (!res.ok) throw new Error(await res.text());
+  ```
+
+- [ ] Close するとカードのステータスが `resolved` に変わり, バッジが「Closed」になることを確認
 
 ---
 
 ## 優先度 2 — デモ品質向上
 
-### TASK-06: プロフィール編集フォームをダッシュボードに追加
+### ✅ Issue-01: NetworkMap → My Class — 自分起点スター型強調
 
-**目的**
-学生が自分の `interests`, `goals`, `activity_tags` を編集できるUIがない.
-スキルマッチの精度はタグの充実度に依存するため, 編集フォームは必須.
+**ファイル**: `apps/web/components/network-map.tsx`
 
-**変更ファイル**
-- `apps/web/components/profile-edit-panel.tsx` (新規作成)
-- `apps/web/app/dashboard/page.tsx` — overview ビューに追加
-
-**コンポーネント仕様**
-- 現在の interests / goals / activity_tags をカンマ区切りのテキストエリアで表示・編集
-- 「保存」ボタンで `PATCH /api/proxy/v1/users/{id}` を呼ぶ
-- TanStack Query の `useMutation` を使い, 成功後に dashboard を invalidate
-- light / dark テーマ対応
-
-**API**
-`PATCH /v1/users/{user_id}` は既存. payload: `{ interests: string[], goals: string[], activity_tags: string[] }`
-
-**受け入れ条件**
-- overview 画面に自分のプロフィール編集セクションが表示される
-- interests を編集して保存すると, network view のスキルタグに反映される
-- 他人のプロフィールは編集できない (自分のIDと一致する場合のみ表示)
+- [x] ログインユーザーのノードを半径 `r=14` で描画 (通常は `r=8`)
+- [x] 直接つながるエッジを `stroke: #1f883d, strokeWidth: 2.5` で強調
+- [x] 他のエッジは `stroke: #888, strokeWidth: 1` のまま
 
 ---
 
-### TASK-07: 議論ボードの重複参加ガード
+### ✅ Issue-04: Help — SOS スキルマッチで回答者をハイライト
 
-**目的**
-TODO.mdに「議論ボードは基本的に一人一個しか参加できないはず」と記載あり.
-現状は複数の議論に同時参加できてしまう.
-
-**変更ファイル**
-- `apps/api/app/routers.py` — `join_event` エンドポイント
-
-**変更内容**
-join_event の処理に以下を追加:
-```python
-# 同コミュニティで is_live=True かつ既に参加中の議論があれば 409 を返す
-already_joined = db.scalar(
-    select(Event)
-    .where(Event.community_id == event.community_id)
-    .where(Event.is_live == True)
-    .where(Event.participant_ids.contains([context.user.id]))
-    .where(Event.id != event_id)
-)
-if already_joined:
-    raise HTTPException(status_code=409, detail="Already participating in another live discussion")
-```
-
-- `apps/web/components/discussion-board.tsx` — joinMutation の onError で「既に別の議論に参加中です」トースト表示
-
-**受け入れ条件**
-- 1つの議論に参加中に別の議論の「参加する」を押すと 409 エラーになる
-- フロントにエラーメッセージが表示される
+- [x] `SosOut.matched_user_ids: list[str]` 追加
+- [x] Jaccard similarity によるマッチング
+- [x] sos-panel.tsx で強調バッジ表示
 
 ---
 
-### TASK-08: SOS チャット後に「知見エッジ追加」ボタンを表示
+### ✅ Issue-05: ポイント加算 — SOS返答・議論参加時
 
-**目的**
-SOS チャットで問題が解決したとき, 自動的に「知見を交換した」エッジを提案する.
-これによりポイントが増え, ネットワークグラフも充実する.
+- [x] `User.bonus_points` カラム追加, migration 0005 適用済み
+- [x] `respond_sos` で `+20`, `join_event` で `+10` ポイント付与
 
-**変更ファイル**
-- `apps/web/components/sos-panel.tsx`
+---
 
-**変更内容**
-チャットが `resolved` 状態のとき, 「知見エッジを追加する」ボタンを表示.
-ボタンクリックで `POST /api/proxy/v1/relationships` を呼ぶ:
-```json
-{
-  "community_id": "...",
-  "to_user_id": "<相手のID>",
-  "type": "知見を交換した",
-  "strength": 3
-}
-```
-成功後はボタンをグレーアウトして「追加済み」に変更.
+### ✅ Issue-06: My Class — プロフィール編集パネルを追加
+
+- [x] `apps/web/components/profile-edit-panel.tsx` 新規作成
+- [x] `PATCH /api/proxy/v1/users/{id}` で interests / goals / activity_tags を更新
+
+---
+
+### Issue-07: My Class — スキルツリーに過去の質問タグを自動生成
+
+**背景 (insight.md より)**
+> My Class の下部には自分のスキルツリー (自分が今まで質問してきた内容をもとに自動的に生成される)
+> を表示する. それらのスキルツリーの要素を押すと, それに関連したネットワークが表示される.
+
+**前提**: Issue-02 完了後に着手.
+
+#### バックエンド — `apps/api/`
+
+- [ ] `DashboardOut` に `my_skill_tags: list[str] = []` を追加
+- [ ] `GET /communities/{id}/dashboard` で自分の過去SOS質問タグを集計
+
+  ```python
+  my_requests = db.scalars(
+      select(SosRequest).where(SosRequest.user_id == actor_id)
+  ).all()
+  my_skill_tags = list(dict.fromkeys(tag for req in my_requests for tag in (req.tags or [])))
+  ```
+
+- [ ] レスポンスに `my_skill_tags` を含めて返す
+
+#### フロントエンド — `apps/web/app/dashboard/page.tsx`
+
+- [ ] `DashboardData` 型に `my_skill_tags?: string[]` を追加
+- [ ] `<MyClassPanel>` の `skillTags` を `dashboard.my_skill_tags ?? me.user.activity_tags` に変更
+
+#### フロントエンド — My Class のスキルツリー
+
+- [ ] スキルタグをクリックすると NetworkMap をそのタグでフィルタリングする
+  - `selectedSkillTag: string | null` を state に持つ
+  - NetworkMap の `props` に `filterTag?: string` を追加
+  - `filterTag` が指定されると, そのタグを持つユーザーに繋がるエッジのみ表示
+
+---
+
+### ✅ Issue-08: Discussion — 重複参加ガード
+
+- [x] `join_event / create_event` に 409 ガード追加済み
+- [x] フロントで `alreadyInTopic` フラグによるボタン無効化
+
+---
+
+### ✅ Issue-09: Home タブ — Discussion カードを追加・タブカウンター修正
+
+- [x] `tabCounts` を `dashboard.events.filter((e) => e.is_live).length` に修正
+- [x] Home ビューに「Sync Live」カードを追加
+
+---
+
+### ✅ Issue-10: Help — チャット解決後に知見エッジ追加ボタンを表示
+
+- [x] `resolved` 状態のチャットに「🔗 知見エッジを追加する」ボタン表示
+- [x] `POST /api/proxy/v1/relationships` でエッジ追加
+
+---
+
+### Issue-18: Help — 画像添付機能
+
+**背景 (insight.md より)**
+> また画像も添付できるようにする.
+
+**設計メモ** (実装コスト高めのため後回し)
+
+- フロント: `<input type="file" accept="image/*">` で画像を選択
+- バックエンド: multipart/form-data で受け取り, base64 or object storage に保存
+- `SosRequest` モデルに `image_url: str | null` カラムを追加 (migration 0007)
+- チャットメッセージにも画像添付を拡張 (optional)
 
 **受け入れ条件**
-- チャット終了後に「知見エッジを追加する」ボタンが表示される
-- ボタンを押すと network view に新しいエッジが追加される
-- 重複追加しようとすると API が 400 を返しボタンが無効化される
+
+- Help の投稿フォームに画像添付ボタンがある
+- 投稿されたカードに添付画像のサムネイルが表示される
 
 ---
 
 ## 優先度 3 — 将来実装 (デモ後)
 
-### TASK-09: GPS 距離マッチング
+### ✅ Issue-12: WebSocket 移行 (議論ボード)
 
-**目的**
-SOS 投稿・議論ボードのスコアに物理的な近さを組み込む.
-
-**設計メモ**
-- v1 は `navigator.geolocation` をユーザーが許可した場合のみ取得
-- 緯度経度を `User` セッションに一時保存 (DB に永続化しない)
-- SOS マッチングスコアに距離係数を掛ける (近いほど高スコア)
-- HTTPS 環境必須なためデモ当日の動作確認が必要
+- [x] `/v1/ws/events/{community_id}` WebSocket エンドポイント
+- [x] create / join / end で `events_manager.broadcast` 呼び出し
+- [x] refetchInterval 8秒, refetchOnMount / refetchOnWindowFocus 有効化
 
 ---
 
-### TASK-10: WebSocket 移行 (議論ボード)
+### ✅ Issue-13: AI 自動ルーティング (SOS → 最適回答者の自動通知)
 
-**目的**
-30秒ポーリングを WebSocket に移行し, 参加者数の変化をリアルタイムで反映する.
-
-**設計メモ**
-- `apps/api/app/routers.py` に既に `SosConnectionManager` が実装済み
-- 同じパターンで `DiscussionConnectionManager` を作り `/ws/events/{community_id}` を追加
-- フロントは `useEffect` + `WebSocket` で接続し, `onmessage` で TanStack Query キャッシュを更新
+- [x] Claude Haiku によるトピック分析
+- [x] WebSocket で対象ユーザーへリアルタイム通知
 
 ---
 
-### TASK-11: AI 自動ルーティング (SOS → 最適回答者の自動通知)
-
-**目的**
-SOS 投稿内容を LLM で分析し, 最も適切な回答者に push 通知 (またはバナー表示) を送る.
+### Issue-14: GPS 距離マッチング (PDFスライド20「SHORT v2」)
 
 **設計メモ**
-- `POST /v1/sos` 時に Anthropic API (claude-haiku-4-5) で topic を分析
-- コミュニティ内ユーザーの interests/goals と照合してトップ3を選定
-- WebSocket で対象ユーザーにリアルタイム通知
-- API キーは環境変数 `ANTHROPIC_API_KEY` で管理
+
+- `navigator.geolocation` で緯度経度を取得 (ユーザー許可が必要)
+- セッションに一時保存, SOS マッチングスコアに距離係数を掛ける
+- HTTPS 環境必須
+
+---
+
+### Issue-15: 大学間連携 (PDFスライド20「LONG」)
+
+**設計メモ**
+
+- 複数コミュニティをまたいだ関係グラフの federation
+- OAuth / OIDC でのマルチテナント認証設計が前提
+
+---
+
+## デモ時の注意事項
+
+PDFスライド9「接続コストを最小化する設計」で示されるフロー:
+
+```
+① SOS投稿 (10秒) → ② チャット → ③ 対面議論昇格 → ④ Discussion ボードで乱入
+```
+
+- デモ推奨アカウント: `tanaka.sensei` + `yuki` + `haruto` (全員 `campus-east`)
+- `saki` / `suzuki.sensei` は `campus-west` のため Discussion イベントは共有されない (仕様)
+- Discussion ボードはコミュニティ単位でリアルタイム同期 (WebSocket)
 
 ---
 
 ## 実装順序の推奨
 
 ```
-TASK-02 (5分)  → TASK-03 (15分) → TASK-05 (30分)
+[完了] Issue-01, 04, 05, 06, 08, 09, 10, 12, 13
      ↓
-TASK-01 (1h)   → TASK-04 (1h)   → TASK-06 (1h)
+Issue-16 (30分, Home コピー修正)   ← insight: 第一印象を変える
+Issue-11 (30分, 場所フィールド復元) ← regression 修正
      ↓
-TASK-07 (30分) → TASK-08 (30分)
+Issue-02 (1h, タグDB) → Issue-17 (1h, タグ検索) → Issue-03 (30分, Close)
      ↓
-TASK-09, 10, 11 (デモ後)
+Issue-07 (1h, スキルツリー) ← Issue-02 依存
+     ↓
+Issue-18 (画像添付, 工数大) → Issue-14, 15 (デモ後)
 ```
 
-## Claude への指示
-
-各タスクを実装するには以下のコマンドを実行:
-
-```bash
-/prp-plan TODO.md
-```
-
-PRD ではなく TODO.md を渡すことで, 次の pending タスクの実装計画が生成されます.
-完了したタスクには `✅` を付けて status を更新してください.
+---
 
 ## 完了済みタスク (参考)
 
 - ✅ 認証機能 (NextAuth + FastAPI JWT)
-- ✅ ナレッジグラフ可視化 (D3.js force-directed)
+- ✅ ナレッジグラフ可視化 (D3.js force-directed, スター型強調)
 - ✅ SOS 投稿・返答・チャット
 - ✅ SOS → 対面議論昇格ボタン
-- ✅ ライブ議論ボード (sync view, 30秒ポーリング)
+- ✅ SOS スキルマッチ (Jaccard similarity + ハイライト)
+- ✅ ライブ議論ボード (WebSocket リアルタイム + 8秒ポーリング)
+- ✅ 議論ボード重複参加ガード (create / join 両方)
+- ✅ 知見エッジ追加ボタン (SOS resolved 後)
+- ✅ プロフィール編集パネル (interests / goals / activity_tags)
+- ✅ ボーナスポイント (SOS返答 +20, 議論参加 +10)
+- ✅ AI自動ルーティング (Claude Haiku, ANTHROPIC_API_KEY 任意)
+- ✅ NetworkMap スター型強調 (自分ノード大, 直接エッジ緑)
 - ✅ シラバス検索 (1808科目)
 - ✅ レコメンデーション (bridge / complementary / similar)
 - ✅ ゲーミフィケーション (ポイント計算・バッジ・ランキング)
-- ✅ Alembic マイグレーション (0001〜0004)
+- ✅ Alembic マイグレーション (0001〜0005)
 - ✅ BFF パターン (Next.js → FastAPI プロキシ)
+- ✅ ページ構成刷新 (Home / Help / Discussion / My Class / Syllabus)

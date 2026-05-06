@@ -3,14 +3,13 @@ import { apiFetch, ApiError } from "@/lib/api";
 import { toQueryString } from "@/lib/utils";
 
 import { LogoutButton } from "@/components/logout-button";
-import { NetworkMap } from "@/components/network-map";
 import { SosPanel } from "@/components/sos-panel";
 import { DiscussionBoard } from "@/components/discussion-board";
-import { ProfileEditPanel } from "@/components/profile-edit-panel";
+import { MyClassPanel } from "@/components/my-class-panel";
 import { redirect } from "next/navigation";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
-type ViewName = "overview" | "network" | "sos" | "sync" | "courses";
+type ViewName = "home" | "help" | "discussion" | "my-class" | "syllabus";
 type ThemeName = "light" | "dark";
 
 type DashboardData = {
@@ -138,11 +137,11 @@ type CourseListItem = {
 };
 
 const views: Array<{ id: ViewName; label: string; visual: string }> = [
-  { id: "overview", label: "Overview", visual: "Home" },
-  { id: "network", label: "Network", visual: "Mesh" },
-  { id: "sos", label: "SOS", visual: "Help" },
-  { id: "sync", label: "5分Sync", visual: "Match" },
-  { id: "courses", label: "Courses", visual: "Syllabus" },
+  { id: "home",       label: "Home",       visual: "#" },
+  { id: "help",       label: "Help",       visual: "?" },
+  { id: "discussion", label: "Discussion", visual: "💬" },
+  { id: "my-class",   label: "My Class",  visual: "@" },
+  { id: "syllabus",   label: "Syllabus",  visual: "📚" },
 ];
 
 function cx(...parts: Array<string | false | undefined>) {
@@ -150,7 +149,7 @@ function cx(...parts: Array<string | false | undefined>) {
 }
 
 function normalizeView(value: string | undefined): ViewName {
-  return views.some((view) => view.id === value) ? (value as ViewName) : "overview";
+  return views.some((view) => view.id === value) ? (value as ViewName) : "home";
 }
 
 function normalizeTheme(value: string | undefined): ThemeName {
@@ -325,11 +324,11 @@ export default async function DashboardPage({
       })}`;
 
     const tabCounts: Record<ViewName, string | number> = {
-      overview: "",
-      network: dashboard.users.length,
-      sos: activeSosCount,
-      sync: liveDiscussionCount,
-      courses: courses.length,
+      home: "",
+      help: activeSosCount,
+      discussion: liveDiscussionCount,
+      "my-class": dashboard.users.length,
+      syllabus: courses.length,
     };
 
     return (
@@ -353,7 +352,7 @@ export default async function DashboardPage({
 
               <form action="/dashboard" className="order-3 flex w-full gap-2 md:order-none md:w-[420px]">
                 <input type="hidden" name="communityId" value={communityId} />
-                <input type="hidden" name="view" value="courses" />
+                <input type="hidden" name="view" value="syllabus" />
                 <input type="hidden" name="mode" value={mode} />
                 <input type="hidden" name="selectedUserId" value={dashboard.selected_user.id} />
                 <input type="hidden" name="theme" value={theme} />
@@ -432,7 +431,7 @@ export default async function DashboardPage({
         </header>
 
         <div className="mx-auto max-w-[1440px] px-4 py-8 md:px-8">
-          {view === "overview" ? (
+          {view === "home" ? (
             <div className="space-y-8">
               <section className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_420px]">
                 <div className={cx("overflow-hidden rounded-xl border shadow-xl", colors.section)}>
@@ -442,30 +441,30 @@ export default async function DashboardPage({
                         Knowledge Mesh
                       </p>
                       <h1 className={cx("mt-4 max-w-3xl text-4xl font-black leading-tight tracking-[-0.04em] md:text-6xl", colors.text)}>
-                        SOS を出して、
+                        質問して、議論して、
                         <br />
-                        知見ネットワークで
-                        <span className="text-[#1f883d]"> 5分接続</span>
+                        <span className={isDark ? "text-[#7ee787]" : "text-[#1f883d]"}>学びを深める</span>
+                        場所
                       </h1>
                       <p className={cx("mt-5 max-w-2xl text-base leading-8", colors.muted)}>
-                        {dashboard.community.subtitle}をベースに、困りごとと近い知見を持つ人をすばやく見つけるための画面です。
+                        {dashboard.community.description || dashboard.community.subtitle}
                       </p>
                       <div className="mt-7 flex flex-wrap gap-3">
                         <a
-                          href={href({ view: "sos" })}
+                          href={href({ view: "help" })}
                           className={cx("rounded-md px-5 py-3 text-sm font-bold transition", colors.primary)}
                         >
-                          SOS を出す
+                          質問を投稿する
                         </a>
                         <a
-                          href={href({ view: "network" })}
+                          href={href({ view: "discussion" })}
                           className={cx(
                             "rounded-md border px-5 py-3 text-sm font-bold transition",
                             colors.soft,
                             colors.text,
                           )}
                         >
-                          ネットワークを見る
+                          Discussion を見る
                         </a>
                       </div>
                     </div>
@@ -477,10 +476,30 @@ export default async function DashboardPage({
 
                 <div className="grid gap-4">
                   {[
-                    { viewId: "sos" as ViewName, label: "Active SOS", value: activeSosCount, body: "今すぐ反応できる相談", accent: colors.danger },
-                    { viewId: "network" as ViewName, label: "Network", value: dashboard.users.length, body: "可視化された知見ノード", accent: isDark ? "bg-[#10243e] text-[#79c0ff]" : "bg-[#ddf4ff] text-[#0969da]" },
-                    { viewId: "sync" as ViewName, label: "Sync Live", value: liveDiscussionCount, body: "進行中の5分Sync議論", accent: isDark ? "bg-[#132d1d] text-[#7ee787]" : "bg-[#dafbe1] text-[#116329]" },
-                    { viewId: "sync" as ViewName, label: "5分Sync", value: dashboard.recommendations.length, body: "おすすめ接続候補", accent: isDark ? "bg-[#3b2f0b] text-[#facc15]" : "bg-[#fff8c5] text-[#9a6700]" },
+                    {
+                      viewId: "help" as ViewName,
+                      label: "Open な質問",
+                      value: activeSosCount,
+                      body: "未解決の質問に答えてみよう",
+                      accent: isDark ? "bg-[#0d1f38] text-[#79c0ff]" : "bg-[#ddf4ff] text-[#0969da]",
+                      badge: "Help",
+                    },
+                    {
+                      viewId: "discussion" as ViewName,
+                      label: "進行中の議論",
+                      value: liveDiscussionCount,
+                      body: "仲間と一緒にトピックを深掘り",
+                      accent: isDark ? "bg-[#132d1d] text-[#7ee787]" : "bg-[#dafbe1] text-[#116329]",
+                      badge: "Active",
+                    },
+                    {
+                      viewId: "my-class" as ViewName,
+                      label: "ネットワーク人数",
+                      value: dashboard.users.length,
+                      body: "自分のつながりとスキルを確認",
+                      accent: isDark ? "bg-[#3b2f0b] text-[#facc15]" : "bg-[#fff8c5] text-[#9a6700]",
+                      badge: "My Class",
+                    },
                   ].map((item) => (
                     <a
                       key={item.label}
@@ -497,7 +516,7 @@ export default async function DashboardPage({
                           </p>
                         </div>
                         <span className={cx("rounded-full px-3 py-1 text-xs font-bold", item.accent)}>
-                          Live
+                          {item.badge}
                         </span>
                       </div>
                       <p className={cx("mt-3 text-sm", colors.muted)}>{item.body}</p>
@@ -506,30 +525,24 @@ export default async function DashboardPage({
                 </div>
               </section>
 
-              <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <section className="grid gap-4 md:grid-cols-3">
                 {[
                   {
-                    viewId: "sos" as ViewName,
-                    title: "SOS",
-                    body: "困った瞬間に投げる",
+                    viewId: "help" as ViewName,
+                    title: "Help",
+                    body: "困ったことを質問. タグで整理してみんなに聞こう.",
                     illustration: <SosIllustration dark={isDark} />,
                   },
                   {
-                    viewId: "network" as ViewName,
-                    title: "Network",
-                    body: "誰と誰が近いか見る",
+                    viewId: "discussion" as ViewName,
+                    title: "Discussion",
+                    body: "テーマを作って仲間と議論. トピックベースで深掘りできる.",
                     illustration: <MeshIllustration dark={isDark} />,
                   },
                   {
-                    viewId: "sync" as ViewName,
-                    title: "5分Sync",
-                    body: "今つなぐ候補を選ぶ",
-                    illustration: <SyncIllustration dark={isDark} />,
-                  },
-                  {
-                    viewId: "courses" as ViewName,
-                    title: "Courses",
-                    body: "授業計画から探す",
+                    viewId: "my-class" as ViewName,
+                    title: "My Class",
+                    body: "自分のネットワークとスキルツリーを確認しよう.",
                     illustration: <CourseIllustration dark={isDark} />,
                   },
                 ].map((item) => (
@@ -550,199 +563,109 @@ export default async function DashboardPage({
                 ))}
               </section>
 
-              <section className="grid gap-6 lg:grid-cols-[420px_minmax(0,1fr)]">
+              <section className="grid gap-6 lg:grid-cols-2">
                 <article className={cx("rounded-xl border p-6 shadow-sm", colors.section)}>
-                  <p className={cx("text-xs font-bold uppercase tracking-[0.22em]", colors.muted)}>Focus User</p>
-                  <div className="mt-4 flex items-start justify-between gap-4">
-                    <div>
-                      <h2 className={cx("text-2xl font-black tracking-[-0.04em]", colors.text)}>
-                        {dashboard.selected_user.name}
-                      </h2>
-                      <p className={cx("mt-1 text-sm", colors.muted)}>
-                        {dashboard.selected_user.group_label} / {dashboard.selected_user.role_label}
-                      </p>
-                    </div>
-                    <div className={cx("rounded-xl px-4 py-3 text-right", colors.soft)}>
-                      <p className={cx("text-xs font-bold uppercase tracking-[0.18em]", colors.muted)}>Points</p>
-                      <p className={cx("text-3xl font-black", colors.text)}>{dashboard.selected_user.points}</p>
-                    </div>
+                  <p className={cx("text-xs font-bold uppercase tracking-[0.22em]", colors.muted)}>
+                    最近の質問
+                  </p>
+                  <h2 className={cx("mt-2 text-xl font-black tracking-[-0.03em]", colors.text)}>Help</h2>
+                  <div className="mt-4 grid gap-3">
+                    {dashboard.sos.filter((s) => s.status === "active").slice(0, 3).length === 0 ? (
+                      <p className={cx("text-sm", colors.muted)}>まだ質問はありません.</p>
+                    ) : (
+                      dashboard.sos.filter((s) => s.status === "active").slice(0, 3).map((item) => (
+                        <div key={item.id} className={cx("rounded-xl border p-3", colors.soft)}>
+                          <p className={cx("text-xs font-bold", colors.muted)}>{item.user_name}</p>
+                          <p className={cx("mt-1 text-sm font-medium", colors.text)}>{item.topic}</p>
+                        </div>
+                      ))
+                    )}
                   </div>
-                  <div className="mt-5 flex flex-wrap gap-2">
-                    {[...dashboard.selected_user.interests, ...dashboard.selected_user.goals].slice(0, 8).map((tag) => (
-                      <span
-                        key={tag}
-                        className={cx(
-                          "rounded-full px-3 py-1 text-xs font-semibold",
-                          isDark ? "bg-[#30363d] text-slate-200" : "bg-[#eaeef2] text-[#24292f]",
-                        )}
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
+                  <a
+                    href={href({ view: "help" })}
+                    className={cx("mt-4 block text-right text-xs font-semibold underline", colors.muted)}
+                  >
+                    すべて見る →
+                  </a>
                 </article>
 
                 <article className={cx("rounded-xl border p-6 shadow-sm", colors.section)}>
-                  <p className={cx("text-xs font-bold uppercase tracking-[0.22em]", colors.muted)}>Next Move</p>
-                  <div className="mt-4 grid gap-4 md:grid-cols-3">
-                    {dashboard.events.slice(0, 2).map((event) => (
-                      <div key={event.id} className={cx("rounded-xl border p-4", colors.soft)}>
-                        <p className={cx("text-sm font-bold", colors.text)}>{event.title}</p>
-                        <p className={cx("mt-2 text-xs leading-5", colors.muted)}>
-                          {event.time_label} / {event.format}
-                        </p>
-                      </div>
-                    ))}
-                    <div className={cx("rounded-xl border p-4", colors.soft)}>
-                      <p className={cx("text-sm font-bold", colors.text)}>橋渡し余地</p>
-                      <p className={cx("mt-2 text-xs leading-5", colors.muted)}>
-                        {dashboard.clusters.slice(0, 2).join(" / ") || "まだ分析中"}
-                      </p>
-                    </div>
+                  <p className={cx("text-xs font-bold uppercase tracking-[0.22em]", colors.muted)}>
+                    進行中の議論
+                  </p>
+                  <h2 className={cx("mt-2 text-xl font-black tracking-[-0.03em]", colors.text)}>Discussion</h2>
+                  <div className="mt-4 grid gap-3">
+                    {dashboard.events.filter((e) => e.is_live).slice(0, 3).length === 0 ? (
+                      <p className={cx("text-sm", colors.muted)}>進行中の議論はありません.</p>
+                    ) : (
+                      dashboard.events.filter((e) => e.is_live).slice(0, 3).map((event) => (
+                        <div key={event.id} className={cx("rounded-xl border p-3", colors.soft)}>
+                          <p className={cx("text-sm font-medium", colors.text)}>{event.title}</p>
+                          <p className={cx("mt-1 text-xs", colors.muted)}>
+                            {event.participant_names.length}名参加中
+                          </p>
+                        </div>
+                      ))
+                    )}
                   </div>
+                  <a
+                    href={href({ view: "discussion" })}
+                    className={cx("mt-4 block text-right text-xs font-semibold underline", colors.muted)}
+                  >
+                    すべて見る →
+                  </a>
                 </article>
               </section>
-
-              {me.user.id === dashboard.selected_user.id ? (
-                <ProfileEditPanel
-                  userId={me.user.id}
-                  communityId={communityId}
-                  initialName={me.user.name}
-                  initialBio={me.user.bio}
-                  initialAvailability={me.user.availability ?? null}
-                  initialInterests={me.user.interests}
-                  initialGoals={me.user.goals}
-                  initialActivityTags={me.user.activity_tags}
-                  theme={theme}
-                />
-              ) : null}
             </div>
           ) : null}
 
-          {view === "network" ? (
-            <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
-              <NetworkMap
-                nodes={dashboard.users.map((user) => ({
-                  id: user.id,
-                  name: user.name,
-                  groupLabel: user.group_label,
-                  nodeRole: user.node_role,
-                  relationshipCount: user.relationship_count,
-                }))}
-                edges={dashboard.relationships}
-                selectedUserId={dashboard.selected_user.id}
-                currentUserId={me.user.id}
-                initialTheme={theme}
-              />
-              <aside className="space-y-4">
-                <section className={cx("rounded-xl border p-5 shadow-sm", colors.section)}>
-                  <p className={cx("text-xs font-bold uppercase tracking-[0.22em]", colors.muted)}>People</p>
-                  <h2 className={cx("mt-2 text-2xl font-black tracking-[-0.04em]", colors.text)}>
-                    見る人を変える
-                  </h2>
-                  <div className="mt-4 grid gap-2">
-                    {dashboard.users.map((user) => (
-                      <a
-                        key={user.id}
-                        href={href({ view: "network", selectedUserId: user.id })}
-                        className={cx(
-                          "rounded-lg border p-3 transition",
-                          user.id === dashboard.selected_user.id
-                            ? isDark
-                              ? "border-[#58a6ff] bg-[#10243e]"
-                              : "border-[#0969da] bg-[#ddf4ff]"
-                            : colors.soft,
-                        )}
-                      >
-                        <p className={cx("text-sm font-bold", colors.text)}>{user.name}</p>
-                        <p className={cx("mt-1 text-xs", colors.muted)}>
-                          {user.group_label} / {user.relationship_count} edges
-                        </p>
-                      </a>
-                    ))}
-                  </div>
-                </section>
-                <section className={cx("rounded-xl border p-5 shadow-sm", colors.section)}>
-                  <p className={cx("text-xs font-bold uppercase tracking-[0.22em]", colors.muted)}>Legend</p>
-                  <div className="mt-4 grid gap-3 text-sm">
-                    {[
-                      ["bg-orange-500", "Bridge", "別分野をつなぐ人"],
-                      ["bg-blue-500", "Core", "中心にいる人"],
-                      ["bg-green-500", "New", "新しく参加した人"],
-                      ["bg-slate-500", "Isolated", "接続余地がある人"],
-                    ].map(([dot, label, body]) => (
-                      <div key={label} className="flex items-center gap-3">
-                        <span className={cx("h-3 w-3 rounded-full", dot)} />
-                        <span className={colors.text}>{label}</span>
-                        <span className={colors.muted}>{body}</span>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              </aside>
-            </section>
+          {view === "my-class" ? (
+            <MyClassPanel
+              nodes={dashboard.users.map((user) => ({
+                id: user.id,
+                name: user.name,
+                groupLabel: user.group_label,
+                nodeRole: user.node_role,
+                relationshipCount: user.relationship_count,
+              }))}
+              edges={dashboard.relationships}
+              selectedUserId={me.user.id}
+              currentUserId={me.user.id}
+              skillTags={me.user.activity_tags}
+              theme={theme}
+            />
           ) : null}
 
-          {view === "sos" ? (
-            <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
-              <SosPanel
-                communityId={communityId}
-                initialItems={dashboard.sos}
-                currentUserId={me.user.id}
-                theme={theme}
-              />
-              <aside className="space-y-4">
-                <section className={cx("overflow-hidden rounded-xl border shadow-sm", colors.section)}>
-                  <SosIllustration dark={isDark} />
-                  <div className="p-5">
-                    <p className={cx("text-xs font-bold uppercase tracking-[0.22em]", colors.muted)}>Flow</p>
-                    <h2 className={cx("mt-2 text-2xl font-black tracking-[-0.04em]", colors.text)}>
-                      投げる、拾う、5分で話す
-                    </h2>
-                    <p className={cx("mt-3 text-sm leading-7", colors.muted)}>
-                      SOS は PostgreSQL に残るので、解決済みの履歴もあとから振り返れます。
-                    </p>
-                  </div>
-                </section>
-                <section className={cx("rounded-xl border p-5 shadow-sm", colors.section)}>
-                  <p className={cx("text-xs font-bold uppercase tracking-[0.22em]", colors.muted)}>Active Queue</p>
-                  <div className="mt-4 grid gap-3">
-                    {dashboard.sos.filter((item) => item.status === "active").slice(0, 5).map((item) => (
-                      <div key={item.id} className={cx("rounded-lg border p-3", colors.soft)}>
-                        <p className={cx("text-sm font-bold", colors.text)}>{item.user_name}</p>
-                        <p className={cx("mt-1 text-xs leading-5", colors.muted)}>{item.topic}</p>
-                      </div>
-                    ))}
-                    {activeSosCount === 0 ? (
-                      <p className={cx("text-sm", colors.muted)}>今はアクティブな SOS はありません。</p>
-                    ) : null}
-                  </div>
-                </section>
-              </aside>
-            </section>
+          {view === "help" ? (
+            <SosPanel
+              communityId={communityId}
+              initialItems={dashboard.sos}
+              currentUserId={me.user.id}
+              theme={theme}
+            />
           ) : null}
 
-          {view === "sync" ? (
+          {view === "discussion" ? (
             <DiscussionBoard
               communityId={communityId}
-              currentUserId={dashboard.selected_user.id}
+              currentUserId={me.user.id}
               initialEvents={dashboard.events}
               theme={theme}
             />
           ) : null}
 
-          {view === "courses" ? (
+          {view === "syllabus" ? (
             <section className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
               <aside className={cx("overflow-hidden rounded-xl border shadow-sm", colors.section)}>
                 <CourseIllustration dark={isDark} />
                 <div className="p-5">
-                  <p className={cx("text-xs font-bold uppercase tracking-[0.22em]", colors.muted)}>Courses</p>
+                  <p className={cx("text-xs font-bold uppercase tracking-[0.22em]", colors.muted)}>Syllabus</p>
                   <h2 className={cx("mt-2 text-2xl font-black tracking-[-0.04em]", colors.text)}>
-                    授業から知見を探す
+                    シラバスから知見を探す
                   </h2>
                   <form action="/dashboard" className="mt-5 grid gap-2">
                     <input type="hidden" name="communityId" value={communityId} />
-                    <input type="hidden" name="view" value="courses" />
+                    <input type="hidden" name="view" value="syllabus" />
                     <input type="hidden" name="mode" value={mode} />
                     <input type="hidden" name="selectedUserId" value={dashboard.selected_user.id} />
                     <input type="hidden" name="theme" value={theme} />
