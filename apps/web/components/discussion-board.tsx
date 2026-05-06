@@ -79,6 +79,7 @@ export function DiscussionBoard({
   }, [communityId, queryClient]);
 
   const liveEvents = eventsQuery.data.filter((e) => e.is_live);
+  const alreadyInLive = liveEvents.some((e) => e.participant_ids.includes(currentUserId));
 
   const createMutation = useMutation({
     mutationFn: async () => {
@@ -174,11 +175,12 @@ export function DiscussionBoard({
         />
         <button
           type="button"
-          disabled={!location.trim() || !topic.trim() || createMutation.isPending}
+          disabled={!location.trim() || !topic.trim() || createMutation.isPending || alreadyInLive}
           onClick={() => createMutation.mutate()}
+          title={alreadyInLive ? "既に別の議論に参加中です" : undefined}
           className="rounded-xl bg-[#2e7d32] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#1b5e20] disabled:cursor-not-allowed disabled:bg-stone-400"
         >
-          {createMutation.isPending ? "投稿中..." : "議論を始める"}
+          {createMutation.isPending ? "投稿中..." : alreadyInLive ? "参加中" : "議論を始める"}
         </button>
       </div>
 
@@ -215,15 +217,16 @@ export function DiscussionBoard({
                       <button
                         type="button"
                         onClick={() => joinMutation.mutate(event.id)}
-                        disabled={joinMutation.isPending}
+                        disabled={joinMutation.isPending || alreadyInLive}
+                        title={alreadyInLive ? "既に別の議論に参加中です" : undefined}
                         className={cx(
                           "rounded-full border px-3 py-1 text-xs font-bold transition",
-                          isDark
-                            ? "border-[#7ee787] text-[#7ee787] hover:bg-[#132d1d]"
-                            : "border-[#2e7d32] text-[#2e7d32] hover:bg-[#dafbe1]",
+                          alreadyInLive
+                            ? isDark ? "border-[#30363d] text-slate-500 cursor-not-allowed" : "border-stone-200 text-stone-400 cursor-not-allowed"
+                            : isDark ? "border-[#7ee787] text-[#7ee787] hover:bg-[#132d1d]" : "border-[#2e7d32] text-[#2e7d32] hover:bg-[#dafbe1]",
                         )}
                       >
-                        参加する
+                        {alreadyInLive ? "参加不可" : "参加する"}
                       </button>
                     ) : null}
                     {isParticipant || isCreator ? (

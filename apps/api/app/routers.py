@@ -529,6 +529,15 @@ async def create_event(
     if payload.is_live:
         if context.role_for(payload.community_id) is None and not context.is_platform_admin():
             raise HTTPException(status_code=403, detail="Forbidden")
+        already_in_live = db.scalar(
+            select(EventParticipant)
+            .join(Event, Event.id == EventParticipant.event_id)
+            .where(EventParticipant.user_id == context.user.id)
+            .where(Event.community_id == payload.community_id)
+            .where(Event.is_live.is_(True))
+        )
+        if already_in_live:
+            raise HTTPException(status_code=409, detail="Already participating in another live discussion")
     else:
         ensure_can_manage(context, payload.community_id)
     event = Event(
@@ -621,7 +630,7 @@ async def join_event(
             .join(Event, Event.id == EventParticipant.event_id)
             .where(EventParticipant.user_id == context.user.id)
             .where(Event.community_id == event.community_id)
-            .where(Event.is_live == True)
+            .where(Event.is_live.is_(True))
             .where(Event.id != event_id)
         )
         if already_in_live:
