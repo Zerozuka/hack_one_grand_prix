@@ -59,23 +59,25 @@ from app.schemas import (
     VerifyPayload,
 )
 from app.services import (
+    analyze_sos_topic,
     build_dashboard,
     build_user_tag_index,
     commit_course_import,
     compute_sos_matches,
     ensure_sos_chat,
+    find_users_by_tags,
     get_course_detail,
     get_course_matches,
     list_communities_for_user,
-    list_courses,
+    list_community_events,
     list_community_relationships,
     list_community_users,
+    list_courses,
     log_action,
     resolve_sos_request,
     serialize_relationship,
     serialize_user,
     validate_course_import,
-    list_community_events,
 )
 
 router = APIRouter(prefix="/v1")
@@ -761,6 +763,25 @@ async def create_sos(
         matched_user_ids=compute_sos_matches(request, users_by_id, user_tags),
     )
     await sos_manager.broadcast(payload.community_id, {"type": "sos-created", "payload": response.model_dump(mode="json")})
+    from app.config import get_settings
+    settings = get_settings()
+    if settings.anthropic_api_key:
+        ai_tags = await analyze_sos_topic(payload.topic, settings.anthropic_api_key)
+        notify_user_ids = find_users_by_tags(ai_tags, users_by_id, user_tags, context.user.id)
+        if notify_user_ids:
+            await sos_manager.broadcast(
+                payload.community_id,
+                {
+                    "type": "sos-ai-notify",
+                    "payload": {
+                        "sos_id": request.id,
+                        "topic": payload.topic,
+                        "ai_tags": ai_tags,
+                        "notify_user_ids": notify_user_ids,
+                        "poster_name": context.user.name,
+                    },
+                },
+            )
     return response
 
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type SosItem = {
   id: string;
@@ -82,6 +82,12 @@ export function SosPanel({
   const [showEscalate, setShowEscalate] = useState(false);
   const [escalateLocation, setEscalateLocation] = useState("");
   const [addedEdges, setAddedEdges] = useState<Set<string>>(new Set());
+  const [aiNotification, setAiNotification] = useState<{
+    sosId: string;
+    topic: string;
+    aiTags: string[];
+    posterName: string;
+  } | null>(null);
   const [activeChatRequestId, setActiveChatRequestId] = useState<string | null>(
     initialItems.find(
       (item) =>
@@ -90,6 +96,38 @@ export function SosPanel({
         (item.user_id === currentUserId || item.responder_user_id === currentUserId),
     )?.id ?? null,
   );
+
+  useEffect(() => {
+    const proto = window.location.protocol === "https:" ? "wss" : "ws";
+    const host = process.env.NEXT_PUBLIC_API_WS_HOST ?? "localhost:8000";
+    const ws = new WebSocket(`${proto}://${host}/v1/ws/sos/${communityId}`);
+    ws.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data as string) as {
+          type: string;
+          payload: {
+            sos_id?: string;
+            topic?: string;
+            ai_tags?: string[];
+            poster_name?: string;
+            notify_user_ids?: string[];
+          };
+        };
+        if (msg.type === "sos-ai-notify" && msg.payload.notify_user_ids?.includes(currentUserId)) {
+          setAiNotification({
+            sosId: msg.payload.sos_id ?? "",
+            topic: msg.payload.topic ?? "",
+            aiTags: msg.payload.ai_tags ?? [],
+            posterName: msg.payload.poster_name ?? "",
+          });
+        }
+        queryClient.invalidateQueries({ queryKey: ["sos", communityId] });
+      } catch {
+        // ignore parse errors
+      }
+    };
+    return () => ws.close();
+  }, [communityId, currentUserId, queryClient]);
 
   const sosQuery = useQuery({
     queryKey: ["sos", communityId],
@@ -237,6 +275,42 @@ export function SosPanel({
 
   return (
     <section className={cx("rounded-xl border p-6 shadow-xl", ui.panel)}>
+      {aiNotification ? (
+        <div className={cx(
+          "mb-4 rounded-xl border px-4 py-3",
+          isDark ? "border-[#1f6feb] bg-[#0d1f38] text-[#79c0ff]" : "border-[#0969da] bg-[#ddf4ff] text-[#0550ae]",
+        )}>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.2em] opacity-70">AI マッチ通知</p>
+              <p className="mt-1 text-sm font-bold">
+                {aiNotification.posterName} さんの SOS があなたに関係しています
+              </p>
+              <p className="mt-1 text-sm opacity-80">{aiNotification.topic}</p>
+              {aiNotification.aiTags.length > 0 ? (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {aiNotification.aiTags.map((tag) => (
+                    <span key={tag} className={cx(
+                      "rounded-full px-2.5 py-0.5 text-xs font-semibold",
+                      isDark ? "bg-[#1f6feb]/30" : "bg-[#0969da]/10",
+                    )}>
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+            <button
+              type="button"
+              onClick={() => setAiNotification(null)}
+              className="shrink-0 text-xs underline opacity-60 hover:opacity-100"
+            >
+              閉じる
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className={cx("text-xs font-bold uppercase tracking-[0.22em]", ui.eyebrow)}>SOS</p>

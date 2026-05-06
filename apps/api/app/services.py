@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections import defaultdict
 from datetime import UTC, datetime
 
@@ -569,3 +570,57 @@ def ensure_sos_chat(db: Session, request: SosRequest, responder_user_id: str) ->
         )
     )
     return chat
+
+
+_logger = logging.getLogger(__name__)
+
+
+async def analyze_sos_topic(topic: str, api_key: str) -> list[str]:
+    """Call Claude Haiku to extract expertise tags from a SOS topic string."""
+    try:
+        import anthropic
+        client = anthropic.AsyncAnthropic(api_key=api_key)
+        message = await client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=128,
+            messages=[
+                {
+                    "role": "user",
+                    "content": (
+                        f"以下の質問・相談に答えるために必要な専門領域・スキルを"
+                        f"3つ以内で日本語のキーワードとしてカンマ区切りで答えてください。"
+                        f"キーワードのみ出力し、説明や番号は不要です。\n\n質問: {topic}"
+                    ),
+                }
+            ],
+        )
+        raw = message.content[0].text if message.content else ""
+        return [t.strip() for t in raw.split(",") if t.strip()][:3]
+    except Exception:
+        _logger.exception("Failed to analyze SOS topic with Anthropic API")
+        return []
+
+
+def find_users_by_tags(
+    tag_list: list[str],
+    users_by_id: dict[str, User],
+    user_tags: dict[str, dict[str, list[str]]],
+    exclude_user_id: str,
+    limit: int = 3,
+) -> list[str]:
+    """Return user IDs whose tags overlap most with the given tag list."""
+    query_set = {t.lower() for t in tag_list}
+    if not query_set:
+        return []
+    scored: list[tuple[float, str]] = []
+    for user_id, user in users_by_id.items():
+        if user_id == exclude_user_id:
+            continue
+        candidate_tags = {v.lower() for v in _tag_set(user_tags.get(user_id, {}))}
+        if not candidate_tags:
+            continue
+        overlap = len(query_set & candidate_tags) / len(query_set | candidate_tags)
+        if overlap > 0:
+            scored.append((overlap, user_id))
+    scored.sort(key=lambda item: (-item[0], users_by_id[item[1]].name))
+    return [uid for _, uid in scored[:limit]]

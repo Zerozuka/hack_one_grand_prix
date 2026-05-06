@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     api_cors_origins: str = Field(default="http://localhost:8080,http://localhost:3000", alias="API_CORS_ORIGINS")
     default_community_id: str = Field(default="campus-east", alias="DEFAULT_COMMUNITY_ID")
     auth_dev_mode: bool = Field(default=True, alias="AUTH_DEV_MODE")
+    anthropic_api_key: str | None = Field(default=None, alias="ANTHROPIC_API_KEY")
 
     @property
     def cors_origins(self) -> list[str]:
