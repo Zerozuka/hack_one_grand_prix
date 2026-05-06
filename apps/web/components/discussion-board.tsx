@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type LiveEvent = {
   id: string;
@@ -65,8 +65,18 @@ export function DiscussionBoard({
     queryKey: ["events", communityId],
     queryFn: () => fetchEvents(communityId),
     initialData: initialEvents,
-    refetchInterval: 30_000,
+    refetchInterval: 60_000,
   });
+
+  useEffect(() => {
+    const proto = window.location.protocol === "https:" ? "wss" : "ws";
+    const host = process.env.NEXT_PUBLIC_API_WS_HOST ?? "localhost:8000";
+    const ws = new WebSocket(`${proto}://${host}/v1/ws/events/${communityId}`);
+    ws.onmessage = () => {
+      queryClient.invalidateQueries({ queryKey: ["events", communityId] });
+    };
+    return () => ws.close();
+  }, [communityId, queryClient]);
 
   const liveEvents = eventsQuery.data.filter((e) => e.is_live);
 

@@ -104,6 +104,7 @@ class SosConnectionManager:
 
 
 sos_manager = SosConnectionManager()
+events_manager = SosConnectionManager()
 
 
 def can_access_sos_chat(context: RequestContext, chat: SosChat) -> bool:
@@ -518,7 +519,7 @@ def get_events(
 
 
 @router.post("/events", response_model=EventOut)
-def create_event(
+async def create_event(
     payload: EventUpsert,
     context: RequestContext = Depends(get_request_context),
     db: Session = Depends(get_db),
@@ -551,7 +552,9 @@ def create_event(
     db.commit()
     users = list_community_users(db, payload.community_id)
     events = list_community_events(db, payload.community_id, {user.id: user for user in users})
-    return next(e for e in events if e.id == event.id)
+    result = next(e for e in events if e.id == event.id)
+    await events_manager.broadcast(payload.community_id, {"type": "event-created", "payload": result.model_dump(mode="json")})
+    return result
 
 
 @router.patch("/events/{event_id}", response_model=EventOut)
@@ -594,7 +597,7 @@ def delete_event(
 
 
 @router.post("/events/{event_id}/join", response_model=EventOut)
-def join_event(
+async def join_event(
     event_id: str,
     context: RequestContext = Depends(get_request_context),
     db: Session = Depends(get_db),
@@ -629,11 +632,13 @@ def join_event(
         db.commit()
     users = list_community_users(db, event.community_id)
     events = list_community_events(db, event.community_id, {user.id: user for user in users})
-    return next(e for e in events if e.id == event_id)
+    result = next(e for e in events if e.id == event_id)
+    await events_manager.broadcast(event.community_id, {"type": "event-joined", "payload": result.model_dump(mode="json")})
+    return result
 
 
 @router.post("/events/{event_id}/end", response_model=EventOut)
-def end_event(
+async def end_event(
     event_id: str,
     context: RequestContext = Depends(get_request_context),
     db: Session = Depends(get_db),
@@ -651,12 +656,15 @@ def end_event(
     can_manage = context.can_manage(event.community_id)
     if not (is_creator or is_participant or can_manage):
         raise HTTPException(status_code=403, detail="Forbidden")
+    community_id = event.community_id
     event.is_live = False
     log_action(db, context.user.id, "end", "event", event_id, event.title)
     db.commit()
-    users = list_community_users(db, event.community_id)
-    events = list_community_events(db, event.community_id, {user.id: user for user in users})
-    return next(e for e in events if e.id == event_id)
+    users = list_community_users(db, community_id)
+    events = list_community_events(db, community_id, {user.id: user for user in users})
+    result = next(e for e in events if e.id == event_id)
+    await events_manager.broadcast(community_id, {"type": "event-ended", "payload": result.model_dump(mode="json")})
+    return result
 
 
 @router.get("/courses", response_model=list[CourseListItem])
@@ -853,6 +861,16 @@ async def sos_websocket(websocket: WebSocket, community_id: str) -> None:
             await websocket.receive_text()
     except WebSocketDisconnect:
         sos_manager.disconnect(community_id, websocket)
+
+
+@router.websocket("/ws/events/{community_id}")
+async def events_websocket(websocket: WebSocket, community_id: str) -> None:
+    await events_manager.connect(community_id, websocket)
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        events_manager.disconnect(community_id, websocket)
 
 
 @router.get("/admin/users", response_model=list[UserProfileOut])
