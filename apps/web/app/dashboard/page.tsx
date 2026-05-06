@@ -6,6 +6,7 @@ import { LogoutButton } from "@/components/logout-button";
 import { NetworkMap } from "@/components/network-map";
 import { SosPanel } from "@/components/sos-panel";
 import { DiscussionBoard } from "@/components/discussion-board";
+import { ProfileEditPanel } from "@/components/profile-edit-panel";
 import { redirect } from "next/navigation";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -109,6 +110,11 @@ type MeData = {
     name: string;
     role_label: string;
     community_id: string;
+    bio: string;
+    availability: string | null;
+    interests: string[];
+    goals: string[];
+    activity_tags: string[];
   };
   memberships: Array<{ community_id: string; role: string }>;
   communities: Array<{
@@ -596,6 +602,20 @@ export default async function DashboardPage({
                   </div>
                 </article>
               </section>
+
+              {me.user.id === dashboard.selected_user.id ? (
+                <ProfileEditPanel
+                  userId={me.user.id}
+                  communityId={communityId}
+                  initialName={me.user.name}
+                  initialBio={me.user.bio}
+                  initialAvailability={me.user.availability ?? null}
+                  initialInterests={me.user.interests}
+                  initialGoals={me.user.goals}
+                  initialActivityTags={me.user.activity_tags}
+                  theme={theme}
+                />
+              ) : null}
             </div>
           ) : null}
 

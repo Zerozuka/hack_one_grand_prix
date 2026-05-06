@@ -94,16 +94,29 @@ export function DiscussionBoard({
     },
   });
 
+  const [joinError, setJoinError] = useState<string | null>(null);
+
   const joinMutation = useMutation({
     mutationFn: async (eventId: string) => {
       const res = await fetch(`/api/proxy/v1/events/${eventId}/join`, {
         method: "POST",
       });
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) {
+        const body = await res.text();
+        throw Object.assign(new Error(body), { status: res.status });
+      }
       return res.json() as Promise<LiveEvent>;
     },
     onSuccess: async () => {
+      setJoinError(null);
       await queryClient.invalidateQueries({ queryKey: ["events", communityId] });
+    },
+    onError: (err: Error & { status?: number }) => {
+      if (err.status === 409) {
+        setJoinError("既に別の議論に参加中です. 終了してから参加してください.");
+      } else {
+        setJoinError("参加に失敗しました. もう一度お試しください.");
+      }
     },
   });
 
@@ -225,6 +238,19 @@ export function DiscussionBoard({
           })
         )}
       </div>
+
+      {joinError ? (
+        <div className={cx("mt-4 rounded-xl border px-4 py-3 text-sm font-medium", isDark ? "border-[#f85149]/40 bg-[#3d1f19] text-[#ffa198]" : "border-red-200 bg-red-50 text-red-700")}>
+          {joinError}
+          <button
+            type="button"
+            onClick={() => setJoinError(null)}
+            className="ml-3 text-xs underline opacity-70 hover:opacity-100"
+          >
+            閉じる
+          </button>
+        </div>
+      ) : null}
     </section>
   );
 }

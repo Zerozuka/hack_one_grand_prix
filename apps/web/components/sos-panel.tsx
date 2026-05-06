@@ -81,6 +81,7 @@ export function SosPanel({
   const [message, setMessage] = useState("");
   const [showEscalate, setShowEscalate] = useState(false);
   const [escalateLocation, setEscalateLocation] = useState("");
+  const [addedEdges, setAddedEdges] = useState<Set<string>>(new Set());
   const [activeChatRequestId, setActiveChatRequestId] = useState<string | null>(
     initialItems.find(
       (item) =>
@@ -163,6 +164,29 @@ export function SosPanel({
       setMessage("");
       await queryClient.invalidateQueries({ queryKey: ["sos-chat", activeChatRequestId] });
       await queryClient.invalidateQueries({ queryKey: ["sos", communityId] });
+    },
+  });
+
+  const addEdgeMutation = useMutation({
+    mutationFn: async ({ toUserId }: { toUserId: string }) => {
+      const response = await fetch("/api/proxy/v1/relationships", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          community_id: communityId,
+          to_user_id: toUserId,
+          type: "project",
+          strength: 3,
+        }),
+      });
+      if (!response.ok) throw new Error(await response.text());
+      return response.json();
+    },
+    onSuccess: () => {
+      if (activeChatRequestId) {
+        setAddedEdges((prev) => new Set(prev).add(activeChatRequestId));
+      }
+      queryClient.invalidateQueries({ queryKey: ["sos", communityId] });
     },
   });
 
@@ -382,6 +406,40 @@ export function SosPanel({
               {sendMessageMutation.isPending ? "送信中..." : "送信"}
             </button>
           </div>
+
+          {(() => {
+            const activeItem = sosQuery.data.find((item) => item.id === activeChatRequestId);
+            const chat = chatQuery.data;
+            const isResolved = activeItem?.status === "resolved";
+            const otherUserId = chat
+              ? chat.requester_user_id === currentUserId
+                ? chat.responder_user_id
+                : chat.requester_user_id
+              : null;
+            const alreadyAdded = activeChatRequestId ? addedEdges.has(activeChatRequestId) : false;
+            if (isResolved && otherUserId) {
+              return (
+                <button
+                  type="button"
+                  disabled={alreadyAdded || addEdgeMutation.isPending}
+                  onClick={() => addEdgeMutation.mutate({ toUserId: otherUserId })}
+                  className={cx(
+                    "mt-3 w-full rounded-xl border px-4 py-2 text-sm font-bold transition",
+                    alreadyAdded
+                      ? isDark
+                        ? "border-[#30363d] text-slate-500 cursor-not-allowed"
+                        : "border-stone-200 text-stone-400 cursor-not-allowed"
+                      : isDark
+                        ? "border-[#1f6feb] text-[#79c0ff] hover:bg-[#0d1f38]"
+                        : "border-[#0969da] text-[#0969da] hover:bg-[#ddf4ff]",
+                  )}
+                >
+                  {alreadyAdded ? "✓ 知見エッジ追加済み" : "🔗 知見エッジを追加する"}
+                </button>
+              );
+            }
+            return null;
+          })()}
 
           {!showEscalate ? (
             <button

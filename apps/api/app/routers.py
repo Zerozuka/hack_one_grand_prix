@@ -610,6 +610,17 @@ def join_event(
             EventParticipant.user_id == context.user.id,
         )
     )
+    if existing is None and event.is_live:
+        already_in_live = db.scalar(
+            select(EventParticipant)
+            .join(Event, Event.id == EventParticipant.event_id)
+            .where(EventParticipant.user_id == context.user.id)
+            .where(Event.community_id == event.community_id)
+            .where(Event.is_live == True)
+            .where(Event.id != event_id)
+        )
+        if already_in_live:
+            raise HTTPException(status_code=409, detail="Already participating in another live discussion")
     if existing is None:
         db.add(EventParticipant(event_id=event_id, user_id=context.user.id))
         if event.is_live:
