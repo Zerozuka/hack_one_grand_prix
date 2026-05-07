@@ -143,6 +143,7 @@ class SosOut(BaseModel):
     user_id: str
     user_name: str
     topic: str
+    tags: list[str] = Field(default_factory=list)
     status: SosStatus
     created_at: datetime
     resolved_at: datetime | None = None
@@ -155,6 +156,7 @@ class SosOut(BaseModel):
 class SosCreate(BaseModel):
     community_id: str
     topic: str
+    tags: list[str] = Field(default_factory=list)
 
 
 class SosRespond(BaseModel):
@@ -254,6 +256,7 @@ class DashboardOut(BaseModel):
     events: list[EventOut]
     sos: list[SosOut]
     ranking: list[dict[str, str | int | list[dict[str, str]]]]
+    my_skill_tags: list[str] = Field(default_factory=list)
 
 
 class ApiEnvelope(BaseModel):

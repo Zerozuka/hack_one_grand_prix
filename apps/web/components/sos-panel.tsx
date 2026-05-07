@@ -9,6 +9,7 @@ type HelpItem = {
   user_id: string;
   user_name: string;
   topic: string;
+  tags: string[];
   status: "active" | "resolved";
   created_at: string;
   resolved_at: string | null;
@@ -76,10 +77,9 @@ export function SosPanel({
   const [topic, setTopic] = useState("");
   const [tagInput, setTagInput] = useState("");
   const [questionTags, setQuestionTags] = useState<string[]>([]);
-  const [filterTag, setFilterTag] = useState<string | null>(null);
+  const [activeTag, setActiveTag] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [addedEdges, setAddedEdges] = useState<Set<string>>(new Set());
-  const [itemTags, setItemTags] = useState<Record<string, string[]>>({});
   const [aiNotification, setAiNotification] = useState<{
     sosId: string;
     topic: string;
@@ -115,9 +115,6 @@ export function SosPanel({
         if (msg.type === "sos-ai-notify") {
           const sosId = msg.payload.sos_id ?? "";
           const aiTags = msg.payload.ai_tags ?? [];
-          if (sosId && aiTags.length > 0) {
-            setItemTags((prev) => ({ ...prev, [sosId]: aiTags }));
-          }
           if (msg.payload.notify_user_ids?.includes(currentUserId)) {
             setAiNotification({
               sosId,
@@ -150,11 +147,7 @@ export function SosPanel({
         body: JSON.stringify({ community_id: communityId, topic, tags: questionTags }),
       });
       if (!response.ok) throw new Error(await response.text());
-      const item = (await response.json()) as HelpItem;
-      if (questionTags.length > 0) {
-        setItemTags((prev) => ({ ...prev, [item.id]: questionTags }));
-      }
-      return item;
+      return response.json() as Promise<HelpItem>;
     },
     onSuccess: async () => {
       setTopic("");
@@ -188,14 +181,7 @@ export function SosPanel({
         headers: { "Content-Type": "application/json" },
       });
       if (!response.ok) {
-        // Fallback: use respond endpoint to mark as resolved
-        const fallback = await fetch("/api/proxy/v1/sos/respond", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ request_id: requestId }),
-        });
-        if (!fallback.ok) throw new Error(await fallback.text());
-        return fallback.json() as Promise<HelpItem>;
+        throw new Error(await response.text());
       }
       return response.json() as Promise<HelpItem>;
     },
@@ -254,9 +240,9 @@ export function SosPanel({
   const openCount = helpQuery.data.filter((item) => item.status === "active").length;
   const isDark = theme === "dark";
 
-  const allTags = [...new Set(Object.values(itemTags).flat())];
-  const filteredItems = filterTag
-    ? helpQuery.data.filter((item) => (itemTags[item.id] ?? []).includes(filterTag))
+  const allTags = [...new Set(helpQuery.data.flatMap((item) => item.tags))];
+  const filteredItems = activeTag
+    ? helpQuery.data.filter((item) => item.tags.includes(activeTag))
     : helpQuery.data;
 
   const ui = {
@@ -363,24 +349,40 @@ export function SosPanel({
             <button
               key={tag}
               type="button"
-              onClick={() => setFilterTag(filterTag === tag ? null : tag)}
+              onClick={() => setActiveTag(activeTag === tag ? null : tag)}
               className={cx(
                 "rounded-full border px-3 py-1 text-xs font-semibold transition",
-                filterTag === tag ? ui.tagActive : ui.tag,
+                activeTag === tag ? ui.tagActive : ui.tag,
               )}
             >
               {tag}
             </button>
           ))}
-          {filterTag ? (
+          {activeTag ? (
             <button
               type="button"
-              onClick={() => setFilterTag(null)}
+              onClick={() => setActiveTag(null)}
               className={cx("text-xs underline", ui.muted)}
             >
               解除
             </button>
           ) : null}
+        </div>
+      ) : null}
+
+      {activeTag ? (
+        <div
+          className={cx(
+            "mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3 text-sm font-bold",
+            isDark
+              ? "border-[#1f6feb] bg-[#0d1f38] text-[#79c0ff]"
+              : "border-[#0969da] bg-[#ddf4ff] text-[#0550ae]",
+          )}
+        >
+          <span>{activeTag} でフィルター中</span>
+          <button type="button" onClick={() => setActiveTag(null)} className="text-xs underline">
+            × クリア
+          </button>
         </div>
       ) : null}
 
@@ -461,11 +463,11 @@ export function SosPanel({
       <div className="mt-6 grid gap-3">
         {filteredItems.length === 0 ? (
           <div className={cx("rounded-xl border px-4 py-5 text-sm shadow-sm", ui.card, ui.muted)}>
-            {filterTag ? `「${filterTag}」の質問はまだありません.` : "まだ質問はありません. 最初に投稿してみましょう."}
+            {activeTag ? `「${activeTag}」の質問はまだありません.` : "まだ質問はありません. 最初に投稿してみましょう."}
           </div>
         ) : (
           filteredItems.map((item) => {
-            const tags = itemTags[item.id] ?? [];
+            const tags = item.tags;
             const matched = item.matched_user_ids.includes(currentUserId);
             const isAuthor = item.user_id === currentUserId;
             const isOpen = item.status === "active";
@@ -515,10 +517,10 @@ export function SosPanel({
                           <button
                             key={tag}
                             type="button"
-                            onClick={() => setFilterTag(filterTag === tag ? null : tag)}
+                            onClick={() => setActiveTag(activeTag === tag ? null : tag)}
                             className={cx(
                               "rounded-full border px-2.5 py-0.5 text-xs font-semibold transition",
-                              filterTag === tag ? ui.tagActive : ui.tag,
+                              activeTag === tag ? ui.tagActive : ui.tag,
                             )}
                           >
                             {tag}

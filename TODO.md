@@ -8,7 +8,7 @@ Issue をひとつ選んで中のタスクを上から順に実装すれば完�
 
 ## 優先度 1 — デモで必ず見せる機能
 
-### Issue-16: Home — 「高校のクラスで議論していたあの感覚」に寄せた Overview 再設計
+### ✅ Issue-16: Home — 「高校のクラスで議論していたあの感覚」に寄せた Overview 再設計
 
 **背景 (insight.md より)**
 > 現在の Home Overview は一目見ると SOS を出して知見ネットワークで5分接続するのだろうかという
@@ -19,11 +19,11 @@ Issue をひとつ選んで中のタスクを上から順に実装すれば完�
 
 **ファイル**: `apps/web/app/dashboard/page.tsx`
 
-- [ ] Home ビューのヒーロー見出し・サブコピーを書き換える
+- [x] Home ビューのヒーロー見出し・サブコピーを書き換える
   - Before: 「SOS を出して...知見ネットワーク...5分接続」
   - After: 「今日も誰かが困っている. 5分の会話で, 理解が変わる.」などの表現
-- [ ] GPS/物理距離に言及するコピーを全て削除する
-- [ ] 3〜4枚のサマリーカードを以下の内容に整理する
+- [x] GPS/物理距離に言及するコピーを全て削除する
+- [x] 3〜4枚のサマリーカードを以下の内容に整理する
 
   | カード | 表示内容 | リンク先 |
   |--------|----------|----------|
@@ -32,12 +32,12 @@ Issue をひとつ選んで中のタスクを上から順に実装すれば完�
   | My Class | 自分のネットワーク人数 | `?view=my-class` |
   | Syllabus | 科目数 (任意) | `?view=syllabus` |
 
-- [ ] 各カードをクリックするとそのビューに遷移することを確認
-- [ ] Home の印象が「SOS ツール」ではなく「学習コミュニティの入口」に変わっていることを確認
+- [x] 各カードをクリックするとそのビューに遷移することを確認
+- [x] Home の印象が「SOS ツール」ではなく「学習コミュニティの入口」に変わっていることを確認
 
 ---
 
-### Issue-11: Discussion — 場所フィールドを復元する (リグレッション修正)
+### ✅ Issue-11: Discussion — 場所フィールドを復元する (リグレッション修正)
 
 **背景**
 PDFスライド17「議論ボード」では「📍 中央食堂で統計学の議論中」と **場所情報** が核心UXとして
@@ -45,8 +45,8 @@ PDFスライド17「議論ボード」では「📍 中央食堂で統計学の�
 
 **ファイル**: `apps/web/components/discussion-board.tsx`
 
-- [ ] `location` state を復元: `const [location, setLocation] = useState("")`
-- [ ] `createMutation` の body を修正
+- [x] `location` state を復元: `const [location, setLocation] = useState("")`
+- [x] `createMutation` の body を修正
 
   ```typescript
   body: JSON.stringify({
@@ -60,7 +60,7 @@ PDFスライド17「議論ボード」では「📍 中央食堂で統計学の�
   ```
 
   成功後に `setLocation("")` もリセット.
-- [ ] フォームを3カラムグリッドに変更 (場所 / トピック / ボタン)
+- [x] フォームを3カラムグリッドに変更 (場所 / トピック / ボタン)
 
   ```tsx
   <div className="mt-6 grid gap-3 md:grid-cols-[1fr_1fr_auto]">
@@ -80,12 +80,12 @@ PDFスライド17「議論ボード」では「📍 中央食堂で統計学の�
   </div>
   ```
 
-- [ ] イベントカードで `📍 {event.location}` が表示されることを確認
-- [ ] 場所なし (空欄) でも投稿可能 (optional フィールド) であることを確認
+- [x] イベントカードで `📍 {event.location}` が表示されることを確認
+- [x] 場所なし (空欄) でも投稿可能 (optional フィールド) であることを確認
 
 ---
 
-### Issue-02: Help — タグのDB永続化
+### ✅ Issue-02: Help — タグのDB永続化
 
 **背景 (insight.md より)**
 > 質問タグは複数つけることができるようにする. 例えば「微分方程式」「線形代数」「Python」など.
@@ -95,13 +95,13 @@ PDFスライド17「議論ボード」では「📍 中央食堂で統計学の�
 
 #### バックエンド — `apps/api/`
 
-- [ ] `apps/api/app/models.py` の `SosRequest` に tags カラムを追加
+- [x] `apps/api/app/models.py` の `SosRequest` に tags カラムを追加
 
   ```python
   tags: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
   ```
 
-- [ ] `apps/api/alembic/versions/0006_sos_tags.py` を新規作成
+- [x] `apps/api/alembic/versions/0006_sos_tags.py` を新規作成
 
   ```python
   def upgrade():
@@ -113,23 +113,23 @@ PDFスライド17「議論ボード」では「📍 中央食堂で統計学の�
       op.drop_column("sos_requests", "tags")
   ```
 
-- [ ] `apps/api/app/schemas.py` の `SosCreate` に `tags: list[str] = []` を追加
-- [ ] `apps/api/app/schemas.py` の `SosOut` に `tags: list[str] = []` を追加
-- [ ] `apps/api/app/routers.py` の `create_sos` で `SosRequest(... tags=body.tags)` を追加
-- [ ] `apps/api/app/routers.py` の serialize 部分に `tags=req.tags` を追加
-- [ ] `alembic upgrade head` を実行してマイグレーションを適用
+- [x] `apps/api/app/schemas.py` の `SosCreate` に `tags: list[str] = []` を追加
+- [x] `apps/api/app/schemas.py` の `SosOut` に `tags: list[str] = []` を追加
+- [x] `apps/api/app/routers.py` の `create_sos` で `SosRequest(... tags=body.tags)` を追加
+- [x] `apps/api/app/routers.py` の serialize 部分に `tags=req.tags` を追加
+- [x] `alembic upgrade head` を実行してマイグレーションを適用
 
 #### フロントエンド — `apps/web/components/sos-panel.tsx`
 
-- [ ] `HelpItem` 型に `tags: string[]` を追加
-- [ ] 各 Help カードで `item.tags` をバッジとして表示する
-- [ ] タグのローカル state (`itemTags`) を廃止する (APIから取得した値を使う)
-- [ ] 投稿フォームの `tags: questionTags` はそのまま (変更なし)
-- [ ] Help タブで投稿 → リロード後もタグがカードに表示されることを確認
+- [x] `HelpItem` 型に `tags: string[]` を追加
+- [x] 各 Help カードで `item.tags` をバッジとして表示する
+- [x] タグのローカル state (`itemTags`) を廃止する (APIから取得した値を使う)
+- [x] 投稿フォームの `tags: questionTags` はそのまま (変更なし)
+- [x] Help タブで投稿 → リロード後もタグがカードに表示されることを確認
 
 ---
 
-### Issue-17: Help — タグによる質問フィルタリング
+### ✅ Issue-17: Help — タグによる質問フィルタリング
 
 **背景 (insight.md より)**
 > タグを押すと同じタグの質問を探すことができるようにする.
@@ -138,8 +138,8 @@ PDFスライド17「議論ボード」では「📍 中央食堂で統計学の�
 
 **ファイル**: `apps/web/components/sos-panel.tsx`
 
-- [ ] `activeTag: string | null` の state を追加
-- [ ] 質問カード内のタグバッジをクリックすると `activeTag` にセットする
+- [x] `activeTag: string | null` の state を追加
+- [x] 質問カード内のタグバッジをクリックすると `activeTag` にセットする
 
   ```tsx
   <button
@@ -153,7 +153,7 @@ PDFスライド17「議論ボード」では「📍 中央食堂で統計学の�
   </button>
   ```
 
-- [ ] Help 一覧を `activeTag` でフィルタリング
+- [x] Help 一覧を `activeTag` でフィルタリング
 
   ```tsx
   const filtered = activeTag
@@ -161,19 +161,19 @@ PDFスライド17「議論ボード」では「📍 中央食堂で統計学の�
     : sosItems;
   ```
 
-- [ ] アクティブなタグの上部に「{activeTag} でフィルター中」バナーと「× クリア」ボタンを表示
-- [ ] タグをもう一度押すとフィルターが解除されることを確認
+- [x] アクティブなタグの上部に「{activeTag} でフィルター中」バナーと「× クリア」ボタンを表示
+- [x] タグをもう一度押すとフィルターが解除されることを確認
 
 ---
 
-### Issue-03: Help — 投稿者による Close 機能
+### ✅ Issue-03: Help — 投稿者による Close 機能
 
 **背景 (insight.md より)**
 > 解決した質問に対しては Github のように Close することができる.
 
 #### バックエンド — `apps/api/app/routers.py`
 
-- [ ] `POST /sos/{request_id}/close` エンドポイントを追加
+- [x] `POST /sos/{request_id}/close` エンドポイントを追加
 
   ```python
   @router.post("/sos/{request_id}/close")
@@ -194,20 +194,20 @@ PDFスライド17「議論ボード」では「📍 中央食堂で統計学の�
       return serialize_sos(req, context.user.id, db)
   ```
 
-- [ ] `curl -X POST /api/v1/sos/{id}/close` で 200 が返ることを確認
-- [ ] 他人の質問に対して 403 が返ることを確認
+- [x] `curl -X POST /api/v1/sos/{id}/close` で 200 が返ることを確認
+- [x] 他人の質問に対して 403 が返ることを確認
 
 #### フロントエンド — `apps/web/components/sos-panel.tsx`
 
-- [ ] 自分の投稿にのみ「Close」ボタンを表示 (GitHub の Issue Close に近いデザイン)
-- [ ] `POST /api/proxy/v1/sos/${requestId}/close` を呼ぶ
+- [x] 自分の投稿にのみ「Close」ボタンを表示 (GitHub の Issue Close に近いデザイン)
+- [x] `POST /api/proxy/v1/sos/${requestId}/close` を呼ぶ
 
   ```ts
   const res = await fetch(`/api/proxy/v1/sos/${requestId}/close`, { method: "POST" });
   if (!res.ok) throw new Error(await res.text());
   ```
 
-- [ ] Close するとカードのステータスが `resolved` に変わり, バッジが「Closed」になることを確認
+- [x] Close するとカードのステータスが `resolved` に変わり, バッジが「Closed」になることを確認
 
 ---
 
@@ -245,7 +245,7 @@ PDFスライド17「議論ボード」では「📍 中央食堂で統計学の�
 
 ---
 
-### Issue-07: My Class — スキルツリーに過去の質問タグを自動生成
+### ✅ Issue-07: My Class — スキルツリーに過去の質問タグを自動生成
 
 **背景 (insight.md より)**
 > My Class の下部には自分のスキルツリー (自分が今まで質問してきた内容をもとに自動的に生成される)
@@ -255,8 +255,8 @@ PDFスライド17「議論ボード」では「📍 中央食堂で統計学の�
 
 #### バックエンド — `apps/api/`
 
-- [ ] `DashboardOut` に `my_skill_tags: list[str] = []` を追加
-- [ ] `GET /communities/{id}/dashboard` で自分の過去SOS質問タグを集計
+- [x] `DashboardOut` に `my_skill_tags: list[str] = []` を追加
+- [x] `GET /communities/{id}/dashboard` で自分の過去SOS質問タグを集計
 
   ```python
   my_requests = db.scalars(
@@ -265,19 +265,19 @@ PDFスライド17「議論ボード」では「📍 中央食堂で統計学の�
   my_skill_tags = list(dict.fromkeys(tag for req in my_requests for tag in (req.tags or [])))
   ```
 
-- [ ] レスポンスに `my_skill_tags` を含めて返す
+- [x] レスポンスに `my_skill_tags` を含めて返す
 
 #### フロントエンド — `apps/web/app/dashboard/page.tsx`
 
-- [ ] `DashboardData` 型に `my_skill_tags?: string[]` を追加
-- [ ] `<MyClassPanel>` の `skillTags` を `dashboard.my_skill_tags ?? me.user.activity_tags` に変更
+- [x] `DashboardData` 型に `my_skill_tags?: string[]` を追加
+- [x] `<MyClassPanel>` の `skillTags` を `dashboard.my_skill_tags ?? me.user.activity_tags` に変更
 
 #### フロントエンド — My Class のスキルツリー
 
-- [ ] スキルタグをクリックすると NetworkMap をそのタグでフィルタリングする
-  - `selectedSkillTag: string | null` を state に持つ
-  - NetworkMap の `props` に `filterTag?: string` を追加
-  - `filterTag` が指定されると, そのタグを持つユーザーに繋がるエッジのみ表示
+- [x] スキルタグをクリックすると NetworkMap をそのタグでフィルタリングする
+  - `selectedTag: string | null` を state に持つ
+  - My Class 側で NetworkMap に渡す nodes / edges をタグで絞り込む
+  - タグが指定されると, そのタグを持つユーザーに繋がるエッジのみ表示
 
 ---
 

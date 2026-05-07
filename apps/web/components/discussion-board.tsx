@@ -44,6 +44,7 @@ export function DiscussionBoard({
 }) {
   const queryClient = useQueryClient();
   const [newTopic, setNewTopic] = useState("");
+  const [location, setLocation] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const isDark = theme === "dark";
 
@@ -107,10 +108,10 @@ export function DiscussionBoard({
         body: JSON.stringify({
           community_id: communityId,
           title: newTopic,
-          time_label: "進行中",
-          format: "オンライン議論",
+          time_label: "今すぐ",
+          format: "対面議論",
           is_live: true,
-          location: null,
+          location: location.trim() || null,
         }),
       });
       if (!res.ok) throw new Error(await res.text());
@@ -118,6 +119,7 @@ export function DiscussionBoard({
     },
     onSuccess: async () => {
       setNewTopic("");
+      setLocation("");
       await queryClient.invalidateQueries({ queryKey: ["events", communityId] });
     },
   });
@@ -178,7 +180,13 @@ export function DiscussionBoard({
       </div>
 
       {/* New topic form */}
-      <div className="mt-6 grid gap-3 md:grid-cols-[1fr_auto]">
+      <div className="mt-6 grid gap-3 md:grid-cols-[1fr_1fr_auto]">
+        <input
+          value={location}
+          onChange={(e) => setLocation(e.target.value)}
+          placeholder="場所 (例: 中央食堂, 図書館3F)"
+          className={cx("rounded-xl border px-4 py-3 text-sm outline-none transition", ui.input)}
+        />
         <input
           value={newTopic}
           onChange={(e) => setNewTopic(e.target.value)}
@@ -187,7 +195,7 @@ export function DiscussionBoard({
               createMutation.mutate();
             }
           }}
-          placeholder="トピックを入力 (例: 微分方程式の解法について)"
+          placeholder="トピック (例: 統計学の検定手法)"
           className={cx("rounded-xl border px-4 py-3 text-sm outline-none transition", ui.input)}
         />
         <button
@@ -242,6 +250,7 @@ export function DiscussionBoard({
                         {topic.title}
                       </button>
                       <p className={cx("mt-1 text-xs", ui.muted)}>
+                        {topic.location ? `📍 ${topic.location} / ` : ""}
                         {topic.participant_names.length > 0
                           ? `参加者: ${topic.participant_names.join(", ")} (${topic.participant_names.length}名)`
                           : "参加者なし"}

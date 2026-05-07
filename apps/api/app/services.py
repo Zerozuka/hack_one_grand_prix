@@ -245,6 +245,7 @@ def list_community_sos(db: Session, community_id: str, users_by_id: dict[str, Us
             user_id=row.user_id,
             user_name=users_by_id[row.user_id].name if row.user_id in users_by_id else "Unknown",
             topic=row.topic,
+            tags=row.tags or [],
             status=row.status,
             created_at=row.created_at,
             resolved_at=row.resolved_at,
@@ -310,6 +311,8 @@ def build_dashboard(db: Session, community_id: str, actor_id: str, selected_user
     clusters = connected_clusters(users, relationships)
     events = list_community_events(db, community_id, users_by_id)
     sos = list_community_sos(db, community_id, users_by_id)
+    my_requests = db.scalars(select(SosRequest).where(SosRequest.user_id == actor_id)).all()
+    my_skill_tags = list(dict.fromkeys(tag for request in my_requests for tag in (request.tags or [])))
     communities = list_communities_for_user(db, actor_id)
     community_out = next(item for item in communities if item.id == community_id)
 
@@ -357,6 +360,7 @@ def build_dashboard(db: Session, community_id: str, actor_id: str, selected_user
         events=events,
         sos=sos,
         ranking=ranking,
+        my_skill_tags=my_skill_tags,
     )
 
 

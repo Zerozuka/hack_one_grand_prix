@@ -172,6 +172,7 @@ def serialize_sos(db: Session, request: SosRequest, users_by_id: dict[str, User]
         user_id=request.user_id,
         user_name=requester.name if requester else "Unknown",
         topic=request.topic,
+        tags=request.tags or [],
         status=request.status,
         created_at=request.created_at,
         resolved_at=request.resolved_at,
@@ -187,6 +188,10 @@ def ensure_any_manager(context: RequestContext) -> None:
     ):
         return
     raise HTTPException(status_code=403, detail="Forbidden")
+
+
+def normalize_sos_tags(tags: list[str]) -> list[str]:
+    return list(dict.fromkeys(tag.strip() for tag in tags if tag.strip()))[:8]
 
 
 def _hash_password(password: str, secret: str) -> str:
@@ -751,6 +756,7 @@ async def create_sos(
         community_id=payload.community_id,
         user_id=context.user.id,
         topic=payload.topic,
+        tags=normalize_sos_tags(payload.tags),
         status=SosStatus.active,
     )
     db.add(request)
@@ -766,6 +772,7 @@ async def create_sos(
         user_id=request.user_id,
         user_name=context.user.name,
         topic=request.topic,
+        tags=request.tags or [],
         status=request.status,
         created_at=request.created_at,
         resolved_at=request.resolved_at,
@@ -791,6 +798,27 @@ async def create_sos(
                     },
                 },
             )
+    return response
+
+
+@router.post("/sos/{request_id}/close", response_model=SosOut)
+async def close_sos(
+    request_id: str,
+    context: RequestContext = Depends(get_request_context),
+    db: Session = Depends(get_db),
+) -> SosOut:
+    request = db.get(SosRequest, request_id)
+    if request is None:
+        raise HTTPException(status_code=404, detail="SOS request not found")
+    if request.user_id != context.user.id:
+        raise HTTPException(status_code=403, detail="Only the author can close this request")
+    request.status = SosStatus.resolved
+    request.resolved_at = datetime.now(UTC)
+    log_action(db, context.user.id, "close", "sos_request", request.id, request.topic)
+    db.commit()
+    db.refresh(request)
+    response = serialize_sos(db, request)
+    await sos_manager.broadcast(request.community_id, {"type": "sos-closed", "payload": response.model_dump(mode="json")})
     return response
 
 

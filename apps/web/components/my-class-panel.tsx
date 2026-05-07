@@ -16,6 +16,7 @@ type Node = {
   groupLabel: string;
   nodeRole: string;
   relationshipCount: number;
+  tags: string[];
 };
 
 type Edge = {
@@ -59,21 +60,22 @@ export function MyClassPanel({
     ],
   };
 
-  const filteredNodes = selectedTag
-    ? nodes.filter(
-        (n) =>
-          n.id === currentUserId ||
-          n.groupLabel.toLowerCase().includes(selectedTag.toLowerCase()),
-      )
-    : nodes;
-
+  const taggedUserIds = new Set(
+    selectedTag
+      ? nodes
+          .filter((node) => node.tags.some((tag) => tag.toLowerCase() === selectedTag.toLowerCase()))
+          .map((node) => node.id)
+      : [],
+  );
   const filteredEdges = selectedTag
-    ? edges.filter(
-        (e) =>
-          filteredNodes.some((n) => n.id === e.from_user_id) &&
-          filteredNodes.some((n) => n.id === e.to_user_id),
-      )
+    ? edges.filter((edge) => taggedUserIds.has(edge.from_user_id) || taggedUserIds.has(edge.to_user_id))
     : edges;
+  const visibleNodeIds = new Set([
+    currentUserId,
+    ...taggedUserIds,
+    ...filteredEdges.flatMap((edge) => [edge.from_user_id, edge.to_user_id]),
+  ]);
+  const filteredNodes = selectedTag ? nodes.filter((node) => visibleNodeIds.has(node.id)) : nodes;
 
   return (
     <div className="space-y-6">

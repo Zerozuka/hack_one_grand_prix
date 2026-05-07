@@ -39,6 +39,9 @@ type DashboardData = {
     role_label: string;
     node_role: string;
     bio: string;
+    interests: string[];
+    goals: string[];
+    activity_tags: string[];
     relationship_count: number;
   }>;
   relationships: Array<{
@@ -93,6 +96,7 @@ type DashboardData = {
     responder_name: string | null;
     chat_id: string | null;
     matched_user_ids: string[];
+    tags: string[];
   }>;
   introductions: Array<{
     title: string;
@@ -101,6 +105,7 @@ type DashboardData = {
   }>;
   clusters: string[];
   isolated: string[];
+  my_skill_tags?: string[];
 };
 
 type MeData = {
@@ -441,13 +446,13 @@ export default async function DashboardPage({
                         Knowledge Mesh
                       </p>
                       <h1 className={cx("mt-4 max-w-3xl text-4xl font-black leading-tight tracking-[-0.04em] md:text-6xl", colors.text)}>
-                        質問して、議論して、
+                        今日も誰かが困っている。
                         <br />
-                        <span className={isDark ? "text-[#7ee787]" : "text-[#1f883d]"}>学びを深める</span>
-                        場所
+                        5分の会話で、
+                        <span className={isDark ? "text-[#7ee787]" : "text-[#1f883d]"}> 理解が変わる。</span>
                       </h1>
                       <p className={cx("mt-5 max-w-2xl text-base leading-8", colors.muted)}>
-                        {dashboard.community.description || dashboard.community.subtitle}
+                        高校の教室みたいに、わからないことをすぐ聞いて、近くの仲間と議論できる学習コミュニティです。
                       </p>
                       <div className="mt-7 flex flex-wrap gap-3">
                         <a
@@ -478,27 +483,35 @@ export default async function DashboardPage({
                   {[
                     {
                       viewId: "help" as ViewName,
-                      label: "Open な質問",
+                      label: "Help",
                       value: activeSosCount,
-                      body: "未解決の質問に答えてみよう",
+                      body: "アクティブな質問数",
                       accent: isDark ? "bg-[#0d1f38] text-[#79c0ff]" : "bg-[#ddf4ff] text-[#0969da]",
                       badge: "Help",
                     },
                     {
                       viewId: "discussion" as ViewName,
-                      label: "進行中の議論",
+                      label: "Discussion",
                       value: liveDiscussionCount,
-                      body: "仲間と一緒にトピックを深掘り",
+                      body: "ライブ議論数",
                       accent: isDark ? "bg-[#132d1d] text-[#7ee787]" : "bg-[#dafbe1] text-[#116329]",
-                      badge: "Active",
+                      badge: "Live",
                     },
                     {
                       viewId: "my-class" as ViewName,
-                      label: "ネットワーク人数",
+                      label: "My Class",
                       value: dashboard.users.length,
-                      body: "自分のつながりとスキルを確認",
+                      body: "自分のネットワーク人数",
                       accent: isDark ? "bg-[#3b2f0b] text-[#facc15]" : "bg-[#fff8c5] text-[#9a6700]",
                       badge: "My Class",
+                    },
+                    {
+                      viewId: "syllabus" as ViewName,
+                      label: "Syllabus",
+                      value: courses.length,
+                      body: "表示中の科目数",
+                      accent: isDark ? "bg-[#2d1f3d] text-[#d2a8ff]" : "bg-[#fbefff] text-[#8250df]",
+                      badge: "Syllabus",
                     },
                   ].map((item) => (
                     <a
@@ -627,11 +640,12 @@ export default async function DashboardPage({
                 groupLabel: user.group_label,
                 nodeRole: user.node_role,
                 relationshipCount: user.relationship_count,
+                tags: [...user.interests, ...user.goals, ...user.activity_tags],
               }))}
               edges={dashboard.relationships}
               selectedUserId={me.user.id}
               currentUserId={me.user.id}
-              skillTags={me.user.activity_tags}
+              skillTags={dashboard.my_skill_tags ?? me.user.activity_tags}
               theme={theme}
             />
           ) : null}
