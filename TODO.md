@@ -321,6 +321,158 @@ PDFスライド17「議論ボード」では「📍 中央食堂で統計学の�
 
 ---
 
+### Issue-19: Syllabus — 科目詳細ページ (履修者・紐づき質問・議論を表示)
+
+**背景 (insight.md 追加より)**
+> Syllabus の各クラスをクリックしたらその詳細が出てきて, それを履修している人を表示させる.
+> また議論や質問も紐づいていたら表示させる.
+
+**ファイル**: `apps/web/app/dashboard/page.tsx`, `apps/api/app/routers.py`, `apps/api/app/services.py`
+
+#### バックエンド
+
+- [ ] `GET /v1/courses/{id}` のレスポンスに以下を追加
+  - `enrolled_users: UserProfileOut[]` — この科目を履修しているユーザー一覧
+  - `linked_sos: SosOut[]` — タイトル/タグがこの科目に関連するSOS質問
+  - `linked_events: EventOut[]` — タイトルがこの科目に関連するDiscussionイベント
+- [ ] `apps/api/app/services.py` の `get_course_detail` でそれぞれを集計して返す
+
+#### フロントエンド
+
+- [ ] Syllabus 一覧で科目カードをクリックすると詳細パネルが開く (展開 or スライドアウト)
+- [ ] 詳細パネルに以下を表示
+  - 科目名・担当教員・学部
+  - 履修ユーザーのアバター一覧
+  - 紐づき質問カード (Help と同じスタイル)
+  - 紐づき議論カード (Discussion と同じスタイル)
+- [ ] 紐づき質問・議論がない場合は「まだ質問・議論はありません」を表示
+
+---
+
+### Issue-20: Migration — デモ用シードデータ増強
+
+**背景 (insight.md 追加より)**
+> もっと migration ファイルを増やす. 今だと人が少なすぎる. もっと人を増やして, 質問も増やして,
+> 議論も増やしとく.
+
+**ファイル**: `data/demo-data.json`
+
+- [ ] `campus-east` のユーザーを現在の8名 → 15名以上に増やす
+- [ ] `campus-west` のユーザーを現在の6名 → 12名以上に増やす
+- [ ] 各ユーザーの interests / goals / activity_tags を充実させる (スキルマッチのデモ映え)
+- [ ] 各コミュニティに Active の質問を 10件以上追加 (タグ付き, 2〜3個/件)
+- [ ] Resolved の質問を 5件以上追加 (チャット履歴あり)
+- [ ] `is_live=true` のイベントを各コミュニティに 3件以上追加
+  - location は「中央食堂」「図書館3F」「ラウンジ」など具体的に記述
+  - 参加者を 2〜4 名にする
+- [ ] `docker compose up --build` でシードが正常に適用されることを確認
+
+---
+
+### Issue-21: Syllabus — 謎のアイコンを修正 (bug)
+
+**背景 (insight.md 追加より)**
+> Syllabus の謎のアイコンをどうにかする.
+
+**ファイル**: `apps/web/app/dashboard/page.tsx` (Syllabus セクション) または関連コンポーネント
+
+- [ ] Syllabus ビューを確認し, 不要・意図不明なアイコンを特定する
+- [ ] 削除, または適切なアイコンに置き換える
+- [ ] Syllabus ビューが正常に表示されることを確認
+
+---
+
+### Issue-22: My Class — スキルツリーを最初に表示, ノードクリックでクラスメイトを表示
+
+**背景 (insight.md 追加より)**
+> My Class はスキルツリーを最初に表示させて, そのツリーのノードを押したらクラスメイト
+> (他の人との繋がり) が表示されるようにする.
+
+**関連**: Issue-07 (スキルツリー自動生成) が前提.
+
+**ファイル**: `apps/web/components/my-class-panel.tsx`, `apps/web/components/skill-tree.tsx`, `apps/web/components/network-map.tsx`
+
+- [ ] My Class パネルのレイアウトを変更
+  - Before: ネットワークグラフ (上) + スキルツリー (下)
+  - After: スキルツリー (上, メイン) + クラスメイト一覧 (下, タグクリック時に展開)
+- [ ] スキルツリーのタグノードをクリックすると, そのタグを持つクラスメイトの一覧を表示する
+  - アバター + 名前 + 共通タグ のカード形式
+- [ ] タグが未選択の状態では全クラスメイトを表示
+
+---
+
+### Issue-23: ユーザープロフィール閲覧機能
+
+**背景 (insight.md 追加より)**
+> 人のプロフィール見れるようにする.
+
+**ファイル**: `apps/web/app/dashboard/page.tsx` またはモーダルコンポーネント (新規)
+
+#### バックエンド
+
+- [ ] `GET /v1/users/{user_id}` エンドポイントを確認 (なければ追加)
+  - 返すフィールド: name, role_label, interests, goals, activity_tags, points, bio
+  - 同一コミュニティのユーザーのみ閲覧可 (403 otherwise)
+
+#### フロントエンド
+
+- [ ] NetworkMap / My Class / Help のユーザー名・アバターをクリックするとプロフィールモーダルが開く
+- [ ] 表示内容: 名前・ロール, interests / goals / activity_tags バッジ, ポイント, 共通タグ数
+- [ ] 自分自身の場合は「編集」ボタンを表示 → profile-edit-panel を開く
+
+---
+
+### Issue-24: バグ — 検索欄で検索後に文字が残る
+
+**背景 (insight.md 追加より)**
+> 検索欄で検索したらそのまま文字が残っているバグを直す.
+
+**ファイル**: 検索 state を持つコンポーネント (Syllabus / Help など)
+
+- [ ] ビュー切り替え時に検索 state がリセットされるよう修正する
+- [ ] または URL search params で管理し, クリアボタンを設ける
+- [ ] 修正後, 別タブに移動して戻っても検索欄が空であることを確認
+
+---
+
+### Issue-25: Light/Dark モード切り替えを削除
+
+**背景 (insight.md 追加より)**
+> Light, Dark モードの切り替え機能をいらないと思う.
+
+**ファイル**:
+- `apps/web/app/dashboard/page.tsx`
+- `apps/web/components/discussion-board.tsx`
+- `apps/web/components/sos-panel.tsx`
+- `apps/web/components/network-map.tsx`
+- その他 `theme` props を受け取るコンポーネント
+
+- [ ] テーマ切り替えボタン / トグルを削除する
+- [ ] `theme` search param の読み込みを削除する (`?theme=dark` などのURL対応も不要)
+- [ ] Light テーマか Dark テーマのどちらか一方に統一し, もう一方のスタイル定義を削除する
+- [ ] 各コンポーネントの `theme?: "light" | "dark"` props を削除し, ハードコードに変更する
+- [ ] 削除後に全タブが正常に表示されることを確認
+
+---
+
+### Issue-26: ヘッダーアイコンをクリックしてプロフィールページへ遷移・編集
+
+**背景 (insight.md 追加より)**
+> 自分の名前が表示されているアイコンを押すとプロフィールに飛ぶようにして,
+> そこからプロフィールを編集できるようにする.
+
+**関連**: Issue-23 (プロフィール閲覧) が前提.
+
+**ファイル**: `apps/web/app/dashboard/page.tsx` (ヘッダー部分)
+
+- [ ] ダッシュボードヘッダーの自分の名前/アバターをクリック可能にする
+- [ ] クリックすると自分のプロフィールモーダルが開く
+- [ ] プロフィール画面に「編集」ボタンを置き, profile-edit-panel を呼び出す
+- [ ] 現在の overview に独立して置かれている ProfileEditPanel をプロフィール画面に移動する
+- [ ] 編集保存後にプロフィール画面の表示が即時反映されることを確認
+
+---
+
 ## 優先度 3 — 将来実装 (デモ後)
 
 ### ✅ Issue-12: WebSocket 移行 (議論ボード)
@@ -376,14 +528,23 @@ PDFスライド9「接続コストを最小化する設計」で示されるフ�
 ```
 [完了] Issue-01, 04, 05, 06, 08, 09, 10, 12, 13
      ↓
-Issue-16 (30分, Home コピー修正)   ← insight: 第一印象を変える
-Issue-11 (30分, 場所フィールド復元) ← regression 修正
+Issue-16 (30分)  Home コピー修正・GPS文言削除
+Issue-11 (30分)  Discussion 場所フィールド復元
+Issue-25 (1h)   Light/Dark モード削除 → UI統一
+Issue-21 (15分)  Syllabus アイコン修正
+Issue-24 (30分)  検索欄バグ修正
      ↓
-Issue-02 (1h, タグDB) → Issue-17 (1h, タグ検索) → Issue-03 (30分, Close)
+Issue-20 (2h)   シードデータ増強 (人・質問・議論)
      ↓
-Issue-07 (1h, スキルツリー) ← Issue-02 依存
+Issue-02 (1h)   Help タグDB → Issue-17 (1h) タグ検索 → Issue-03 (30分) Close
      ↓
-Issue-18 (画像添付, 工数大) → Issue-14, 15 (デモ後)
+Issue-07 (1h)   スキルツリー自動生成    ← Issue-02 依存
+Issue-22 (1h)   My Class レイアウト変更 ← Issue-07 依存
+     ↓
+Issue-23 (1h)   プロフィール閲覧 → Issue-26 (30分) ヘッダーアイコン連携
+Issue-19 (2h)   Syllabus 詳細ページ
+     ↓
+Issue-18 (工数大) 画像添付 → Issue-14, 15 (デモ後)
 ```
 
 ---
