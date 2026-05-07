@@ -9,6 +9,7 @@ from sqlalchemy import delete, select
 from app.db import SessionLocal
 from app.models import (
     AuthIdentity,
+    ChatMessage,
     Community,
     CommunityMembership,
     Course,
@@ -19,6 +20,10 @@ from app.models import (
     NodeRole,
     Relationship,
     RelationshipType,
+    SosChat,
+    SosRequest,
+    SosResponse,
+    SosStatus,
     TagKind,
     User,
     UserRole,
@@ -30,7 +35,12 @@ DEMO_DATA_PATH = ROOT / "data" / "demo-data.json"
 COURSES_PATH = ROOT / "data" / "courses.json"
 
 ROLE_MAP = {"manager": UserRole.community_manager, "member": UserRole.member}
-NODE_ROLE_MAP = {"core": NodeRole.core, "new": NodeRole.new, "bridge": NodeRole.bridge, "isolated": NodeRole.isolated}
+NODE_ROLE_MAP = {
+    "core": NodeRole.core,
+    "new": NodeRole.new,
+    "bridge": NodeRole.bridge,
+    "isolated": NodeRole.isolated,
+}
 RELATIONSHIP_TYPE_MAP = {
     "known": RelationshipType.known,
     "talked": RelationshipType.talked,
@@ -45,12 +55,19 @@ def main() -> None:
     force_reset = os.getenv("SEED_FORCE_RESET", "false").lower() == "true"
 
     with SessionLocal() as db:
-        has_existing_data = bool(db.scalar(select(User.id).limit(1))) or bool(db.scalar(select(Community.id).limit(1)))
+        has_existing_data = (
+            bool(db.scalar(select(User.id).limit(1)))
+            or bool(db.scalar(select(Community.id).limit(1)))
+        )
         if has_existing_data and not force_reset:
             print("Seed skipped because data already exists")
             return
 
-        for model in [EventParticipant, Event, Relationship, CommunityMembership, AuthIdentity, CourseTopic, CourseDepartment, Course, User, Community]:
+        for model in [
+            EventParticipant, Event, Relationship, CommunityMembership, AuthIdentity,
+            ChatMessage, SosChat, SosResponse, SosRequest,
+            CourseTopic, CourseDepartment, Course, User, Community,
+        ]:
             db.execute(delete(model))
         db.commit()
 
@@ -122,6 +139,9 @@ def main() -> None:
                     title=event["title"],
                     time_label=event["time"],
                     format=event["format"],
+                    is_live=event.get("is_live", False),
+                    location=event.get("location"),
+                    creator_user_id=event.get("creatorUserId"),
                 )
             )
             db.flush()
@@ -151,6 +171,29 @@ def main() -> None:
                 db.add(CourseTopic(course_id=course["id"], position=position, topic=topic))
             for department in course.get("departments", []):
                 db.add(CourseDepartment(course_id=course["id"], name=department))
+
+        for sos in demo_data.get("sos_requests", []):
+            db.add(
+                SosRequest(
+                    id=sos["id"],
+                    community_id=sos["communityId"],
+                    user_id=sos["userId"],
+                    topic=sos["topic"],
+                    tags=sos.get("tags", []),
+                    status=(
+                        SosStatus.resolved if sos.get("status") == "resolved"
+                        else SosStatus.active
+                    ),
+                )
+            )
+            db.flush()
+            if sos.get("responderId"):
+                db.add(
+                    SosResponse(
+                        request_id=sos["id"],
+                        responder_user_id=sos["responderId"],
+                    )
+                )
 
         existing_memberships = {
             (membership.community_id, membership.user_id)

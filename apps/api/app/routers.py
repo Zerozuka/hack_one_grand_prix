@@ -39,6 +39,7 @@ from app.schemas import (
     CourseImportPayload,
     CourseImportResult,
     CourseListItem,
+    CourseListPage,
     CourseOut,
     DashboardOut,
     EventOut,
@@ -683,15 +684,16 @@ async def end_event(
     return result
 
 
-@router.get("/courses", response_model=list[CourseListItem])
+@router.get("/courses", response_model=CourseListPage)
 def get_courses(
     query: str | None = Query(default=None),
-    limit: int = Query(default=30, le=100),
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=20, le=100),
     context: RequestContext = Depends(get_request_context),
     db: Session = Depends(get_db),
-) -> list[CourseListItem]:
+) -> CourseListPage:
     _ = context
-    return list_courses(db, query, limit)
+    return list_courses(db, query, offset, limit)
 
 
 @router.get("/courses/{course_id}", response_model=CourseOut)
@@ -958,7 +960,7 @@ def admin_courses(
     db: Session = Depends(get_db),
 ) -> list[CourseListItem]:
     ensure_any_manager(context)
-    return list_courses(db, query, 100)
+    return list_courses(db, query, 0, 100).items
 
 
 @router.get("/admin/auth-identities", response_model=list[AuthIdentityOut])

@@ -151,6 +151,162 @@
       "activityTags": ["夜に動く", "一人で悩みがち", "初参加"]
     },
     {
+      "id": "east-sota",
+      "communityId": "campus-east",
+      "name": "そうた",
+      "group": "cs",
+      "role": "bridge",
+      "availability": "平日夜",
+      "bio": "情報学科2年。PythonとデータサイエンスにはまっているCS系。機械学習を独学中。",
+      "interests": ["機械学習", "Python", "データ分析", "統計"],
+      "goals": ["数学力を伸ばしたい", "ML実装を完成させたい"],
+      "activityTags": ["夜に動く", "Jupyter常駐", "kaggle参加中"]
+    },
+    {
+      "id": "east-nana",
+      "communityId": "campus-east",
+      "name": "なな",
+      "group": "math",
+      "role": "core",
+      "availability": "平日昼",
+      "bio": "数学科3年。確率論と測度論が専門。統計的機械学習の理論に興味がある。",
+      "interests": ["確率論", "統計", "測度論", "線形代数"],
+      "goals": ["理論と実装を結びつけたい", "後輩の勉強会をサポートしたい"],
+      "activityTags": ["昼に動く", "証明が好き", "ゼミリーダー"]
+    },
+    {
+      "id": "east-riku",
+      "communityId": "campus-east",
+      "name": "りく",
+      "group": "physics",
+      "role": "new",
+      "availability": "平日昼",
+      "bio": "物理学科2年。電磁気学と波動を学んでいる。数値計算に興味が出てきた。",
+      "interests": ["電磁気学", "波動", "熱力学", "微分方程式"],
+      "goals": ["Pythonで物理シミュレーションをやりたい", "数値計算を学びたい"],
+      "activityTags": ["昼に動く", "実験好き", "グラフを描くのが好き"]
+    },
+    {
+      "id": "east-hana",
+      "communityId": "campus-east",
+      "name": "はな",
+      "group": "cs",
+      "role": "core",
+      "availability": "平日昼",
+      "bio": "情報学科4年。データベースとクラウドインフラが専門。SQL最適化が趣味。",
+      "interests": ["データベース", "SQL", "クラウド", "ソフトウェア工学"],
+      "goals": ["後輩にDB設計を教えたい", "分散システムを学びたい"],
+      "activityTags": ["昼に動く", "設計が好き", "ドキュメントを書く"]
+    },
+    {
+      "id": "east-daichi",
+      "communityId": "campus-east",
+      "name": "だいち",
+      "group": "math",
+      "role": "isolated",
+      "availability": "平日夜",
+      "bio": "数学科1年。微分積分で苦戦中。誰かと一緒に学びたいが声をかけづらい。",
+      "interests": ["微分積分", "線形代数", "数学基礎"],
+      "goals": ["ε-δ論法を理解したい", "証明の書き方を学びたい"],
+      "activityTags": ["夜に動く", "一人で悩みがち", "初参加"]
+    },
+    {
+      "id": "east-yuna",
+      "communityId": "campus-east",
+      "name": "ゆな",
+      "group": "cs",
+      "role": "new",
+      "availability": "平日昼",
+      "bio": "情報学科2年。フロントエンド開発に興味があり、ReactとTypeScriptを独学中。",
+      "interests": ["フロントエンド", "React", "TypeScript", "UI/UX"],
+      "goals": ["バックエンドも触れるようになりたい", "チーム開発を経験したい"],
+      "activityTags": ["昼に動く", "デザイン好き", "コード書くのが楽しい"]
+    },
+    {
+      "id": "east-kota",
+      "communityId": "campus-east",
+      "name": "こうた",
+      "group": "cs",
+      "role": "bridge",
+      "availability": "平日夜",
+      "bio": "情報学科3年。OSとネットワークが得意。セキュリティも最近勉強している。",
+      "interests": ["OS", "ネットワーク", "セキュリティ", "ソフトウェア工学"],
+      "goals": ["インフラ系の人と情報交換したい", "CTFに参加したい"],
+      "activityTags": ["夜に動く", "ターミナル住人", "ネットワーク構築好き"]
+    },
+    {
+      "id": "east-miku",
+      "communityId": "campus-east",
+      "name": "みく",
+      "group": "math",
+      "role": "core",
+      "availability": "平日昼",
+      "bio": "数学科2年。集合論と位相空間を学んでいる。抽象代数学が好き。",
+      "interests": ["集合と位相", "代数学", "線形代数", "数学基礎"],
+      "goals": ["数学科の仲間を増やしたい", "証明を教え合いたい"],
+      "activityTags": ["昼に動く", "抽象的な概念が好き", "ノートが綺麗"]
+    },
+    {
+      "id": "east-ryota",
+      "communityId": "campus-east",
+      "name": "りょうた",
+      "group": "physics",
+      "role": "bridge",
+      "availability": "平日昼",
+      "bio": "物理学科4年。数値計算とシミュレーションが専門。Pythonでの実装が得意。",
+      "interests": ["数値計算", "シミュレーション", "Python", "微分方程式"],
+      "goals": ["CS系の人とコラボしたい", "並列計算を学びたい"],
+      "activityTags": ["昼に動く", "コード書くのが好き", "GPUを使いたい"]
+    },
+    {
+      "id": "east-sora",
+      "communityId": "campus-east",
+      "name": "そら",
+      "group": "newcomer",
+      "role": "isolated",
+      "availability": "平日夜",
+      "bio": "情報学科1年。C言語の授業で苦戦中。周りに聞ける人がいなくて困っている。",
+      "interests": ["プログラミング", "C言語", "計算機基礎", "アルゴリズム"],
+      "goals": ["C言語をマスターしたい", "先輩にプログラミングを教わりたい"],
+      "activityTags": ["夜に動く", "一人で悩みがち", "初参加"]
+    },
+    {
+      "id": "east-luna",
+      "communityId": "campus-east",
+      "name": "るな",
+      "group": "math",
+      "role": "new",
+      "availability": "土日昼",
+      "bio": "数学科3年。代数幾何と環論・体論を学んでいる。抽象数学が好き。",
+      "interests": ["代数学", "環論", "体論", "集合と位相"],
+      "goals": ["代数幾何の勉強仲間を見つけたい", "数学科の横のつながりを増やしたい"],
+      "activityTags": ["土日に動く", "本を読むのが好き", "セミナー参加"]
+    },
+    {
+      "id": "east-kei",
+      "communityId": "campus-east",
+      "name": "けい",
+      "group": "cs",
+      "role": "core",
+      "availability": "平日夜",
+      "bio": "情報学科2年。競技プログラミングに注力。AtCoderで青色を目指している。",
+      "interests": ["アルゴリズム", "競技プログラミング", "データ構造", "C++"],
+      "goals": ["AtCoder青になりたい", "仲間を増やしたい"],
+      "activityTags": ["夜に動く", "高速実装", "AtCoder毎日"]
+    },
+    {
+      "id": "east-ayaka",
+      "communityId": "campus-east",
+      "name": "あやか",
+      "group": "physics",
+      "role": "bridge",
+      "availability": "平日昼",
+      "bio": "物理学科3年。光学と量子力学が専門。数値計算でシミュレーションをやっている。",
+      "interests": ["光学", "量子力学", "数値計算", "Python"],
+      "goals": ["CS系の人とコラボしたい", "実験データ解析を学びたい"],
+      "activityTags": ["昼に動く", "実験好き", "Python使い"]
+    },
+    {
       "id": "west-suzuki",
       "communityId": "campus-west",
       "name": "鈴木先生",
@@ -221,6 +377,114 @@
       "interests": ["ワークショップ", "ファシリテーション", "UI/UX"],
       "goals": ["理系学生との接点を増やしたい", "文理融合プロジェクトを立ち上げたい"],
       "activityTags": ["土日に動く", "巻き込みが得意", "場づくり"]
+    },
+    {
+      "id": "west-kana",
+      "communityId": "campus-west",
+      "name": "かな",
+      "group": "humanities",
+      "role": "new",
+      "availability": "平日昼",
+      "bio": "文学科2年。読書と文章表現が得意。プレゼンや論文の書き方を磨いている。",
+      "interests": ["文章表現", "論文作成", "語学", "プレゼン"],
+      "goals": ["他分野の人と議論したい", "文章力を活かせる場を探している"],
+      "activityTags": ["昼に動く", "文章を書くのが好き", "読書好き"]
+    },
+    {
+      "id": "west-ryuki",
+      "communityId": "campus-west",
+      "name": "りゅうき",
+      "group": "management",
+      "role": "bridge",
+      "availability": "平日昼",
+      "bio": "経営学科3年。マーケティングとデータ分析を掛け合わせた研究をしている。Excelが得意。",
+      "interests": ["データ分析", "マーケティング", "統計", "ビジネス分析"],
+      "goals": ["Pythonも使えるようになりたい", "データドリブンな意思決定を学びたい"],
+      "activityTags": ["昼に動く", "Excel職人", "ビジネス思考"]
+    },
+    {
+      "id": "west-mei",
+      "communityId": "campus-west",
+      "name": "めい",
+      "group": "psychology",
+      "role": "new",
+      "availability": "平日昼",
+      "bio": "心理学科2年。実験心理学と統計解析を学んでいる。SPSSとRを使いこなしたい。",
+      "interests": ["統計", "実験心理学", "データ分析", "R言語"],
+      "goals": ["統計の理論を深めたい", "心理学×データサイエンスを探求したい"],
+      "activityTags": ["昼に動く", "実験好き", "データ分析したい"]
+    },
+    {
+      "id": "west-jun",
+      "communityId": "campus-west",
+      "name": "じゅん",
+      "group": "law",
+      "role": "isolated",
+      "availability": "平日昼",
+      "bio": "法学科3年。判例研究と法学論文に取り組んでいる。他分野の人との交流が少ない。",
+      "interests": ["法学", "判例研究", "論文作成", "社会科学"],
+      "goals": ["法学論文の書き方を磨きたい", "他分野の人と議論したい"],
+      "activityTags": ["昼に動く", "一人で悩みがち", "図書館常駐"]
+    },
+    {
+      "id": "west-aya",
+      "communityId": "campus-west",
+      "name": "あや",
+      "group": "media",
+      "role": "bridge",
+      "availability": "平日夜",
+      "bio": "情報メディア学科2年。動画編集とデザインができる。SNSのコンテンツ制作もやっている。",
+      "interests": ["動画編集", "デザイン", "SNS", "UI/UX"],
+      "goals": ["Webエンジニアと組んでサービスを作りたい", "映像×テクノロジーを探求したい"],
+      "activityTags": ["夜に動く", "クリエイティブ思考", "コンテンツ制作"]
+    },
+    {
+      "id": "west-kohei",
+      "communityId": "campus-west",
+      "name": "こうへい",
+      "group": "economics",
+      "role": "core",
+      "availability": "平日昼",
+      "bio": "経済学科4年。計量経済学と統計分析が専門。PythonとRで分析を行っている。",
+      "interests": ["計量経済学", "統計", "Python", "データ分析"],
+      "goals": ["データサイエンスの知識を広めたい", "文系学生のデータリテラシーを上げたい"],
+      "activityTags": ["昼に動く", "分析が好き", "教えるのが得意"]
+    },
+    {
+      "id": "west-noa",
+      "communityId": "campus-west",
+      "name": "のあ",
+      "group": "design",
+      "role": "new",
+      "availability": "土日昼",
+      "bio": "デザイン学科1年。AdobeとFigmaを学んでいる。イラストと3Dモデリングも興味あり。",
+      "interests": ["デザイン", "Adobe", "Figma", "イラスト"],
+      "goals": ["デザインのフィードバックをもらいたい", "プロダクトデザインを学びたい"],
+      "activityTags": ["土日に動く", "クリエイティブ", "初参加"]
+    },
+    {
+      "id": "west-yuuki",
+      "communityId": "campus-west",
+      "name": "ゆうき",
+      "group": "social",
+      "role": "bridge",
+      "availability": "平日昼",
+      "bio": "社会科学科3年。社会調査法と質問紙設計が専門。Rで統計分析を行っている。",
+      "interests": ["社会調査", "質問紙設計", "R言語", "統計"],
+      "goals": ["データサイエンスと社会調査を融合させたい", "調査方法論を深めたい"],
+      "activityTags": ["昼に動く", "調査が好き", "R言語ユーザー"]
+    },
+    {
+      "id": "west-rena",
+      "communityId": "campus-west",
+      "name": "れな",
+      "group": "international",
+      "role": "isolated",
+      "availability": "平日夜",
+      "bio": "国際関係学科2年。英語論文を書いているが、文章表現に自信がない。",
+      "interests": ["英語論文", "国際関係", "プレゼン", "異文化理解"],
+      "goals": ["英語論文の書き方を上達させたい", "プレゼン力を伸ばしたい"],
+      "activityTags": ["夜に動く", "一人で悩みがち", "英語好き"]
     }
   ],
   "relationships": [
@@ -261,6 +525,114 @@
       "note": "図書館で偶然隣になり、環境構築の相談を受けた"
     },
     {
+      "id": "rel-east-5",
+      "communityId": "campus-east",
+      "fromUserId": "east-haruto",
+      "toUserId": "east-kei",
+      "type": "project",
+      "strength": 4,
+      "note": "AtCoderの練習会で一緒にチームを組んでいる"
+    },
+    {
+      "id": "rel-east-6",
+      "communityId": "campus-east",
+      "fromUserId": "east-mao",
+      "toUserId": "east-ayaka",
+      "type": "talked",
+      "strength": 3,
+      "note": "量子力学の演習で議論したことがある"
+    },
+    {
+      "id": "rel-east-7",
+      "communityId": "campus-east",
+      "fromUserId": "east-ren",
+      "toUserId": "east-sota",
+      "type": "project",
+      "strength": 4,
+      "note": "機械学習の共同プロジェクトでコードレビューし合っている"
+    },
+    {
+      "id": "rel-east-8",
+      "communityId": "campus-east",
+      "fromUserId": "east-tanaka",
+      "toUserId": "east-nana",
+      "type": "project",
+      "strength": 4,
+      "note": "確率論ゼミの研究指導"
+    },
+    {
+      "id": "rel-east-9",
+      "communityId": "campus-east",
+      "fromUserId": "east-hana",
+      "toUserId": "east-kota",
+      "type": "talked",
+      "strength": 3,
+      "note": "システム設計の勉強会で意見交換した"
+    },
+    {
+      "id": "rel-east-10",
+      "communityId": "campus-east",
+      "fromUserId": "east-nana",
+      "toUserId": "east-miku",
+      "type": "talked",
+      "strength": 3,
+      "note": "位相空間の自主勉強会で一緒に学んでいる"
+    },
+    {
+      "id": "rel-east-11",
+      "communityId": "campus-east",
+      "fromUserId": "east-ryota",
+      "toUserId": "east-mao",
+      "type": "project",
+      "strength": 4,
+      "note": "数値シミュレーションで共同実装をしている"
+    },
+    {
+      "id": "rel-east-12",
+      "communityId": "campus-east",
+      "fromUserId": "east-kai",
+      "toUserId": "east-sora",
+      "type": "known",
+      "strength": 2,
+      "note": "同じ学年・同じ学科で顔見知り"
+    },
+    {
+      "id": "rel-east-13",
+      "communityId": "campus-east",
+      "fromUserId": "east-yuki",
+      "toUserId": "east-airi",
+      "type": "known",
+      "strength": 2,
+      "note": "新入生歓迎イベントで知り合った"
+    },
+    {
+      "id": "rel-east-14",
+      "communityId": "campus-east",
+      "fromUserId": "east-daichi",
+      "toUserId": "east-luna",
+      "type": "known",
+      "strength": 2,
+      "note": "同じ数学科で授業が被っている"
+    },
+    {
+      "id": "rel-east-15",
+      "communityId": "campus-east",
+      "fromUserId": "east-kei",
+      "toUserId": "east-ren",
+      "type": "event",
+      "strength": 3,
+      "note": "学内プログラミングコンテストで同チームだった"
+    },
+    {
+      "id": "rel-east-16",
+      "communityId": "campus-east",
+      "fromUserId": "east-ryota",
+      "toUserId": "east-ayaka",
+      "type": "talked",
+      "strength": 3,
+      "note": "Python数値計算の勉強会で知り合った"
+    },
+    {
       "id": "rel-west-1",
       "communityId": "campus-west",
       "fromUserId": "west-suzuki",
@@ -295,6 +667,78 @@
       "type": "known",
       "strength": 2,
       "note": "デザイン学科の授業で顔見知り"
+    },
+    {
+      "id": "rel-west-5",
+      "communityId": "campus-west",
+      "fromUserId": "west-mika",
+      "toUserId": "west-aya",
+      "type": "project",
+      "strength": 4,
+      "note": "Webアプリ開発プロジェクトで協働中"
+    },
+    {
+      "id": "rel-west-6",
+      "communityId": "campus-west",
+      "fromUserId": "west-taro",
+      "toUserId": "west-kohei",
+      "type": "talked",
+      "strength": 3,
+      "note": "データ分析の手法について意見交換した"
+    },
+    {
+      "id": "rel-west-7",
+      "communityId": "campus-west",
+      "fromUserId": "west-shun",
+      "toUserId": "west-mei",
+      "type": "known",
+      "strength": 2,
+      "note": "統計学の授業で同じクラス"
+    },
+    {
+      "id": "rel-west-8",
+      "communityId": "campus-west",
+      "fromUserId": "west-hina",
+      "toUserId": "west-noa",
+      "type": "talked",
+      "strength": 3,
+      "note": "デザインイベントで話した"
+    },
+    {
+      "id": "rel-west-9",
+      "communityId": "campus-west",
+      "fromUserId": "west-kohei",
+      "toUserId": "west-yuuki",
+      "type": "talked",
+      "strength": 3,
+      "note": "社会科学×統計の研究で意見交換"
+    },
+    {
+      "id": "rel-west-10",
+      "communityId": "campus-west",
+      "fromUserId": "west-rena",
+      "toUserId": "west-kana",
+      "type": "known",
+      "strength": 2,
+      "note": "同じ学部の授業で顔見知り"
+    },
+    {
+      "id": "rel-west-11",
+      "communityId": "campus-west",
+      "fromUserId": "west-jun",
+      "toUserId": "west-shun",
+      "type": "known",
+      "strength": 2,
+      "note": "同学年で講義が被っている"
+    },
+    {
+      "id": "rel-west-12",
+      "communityId": "campus-west",
+      "fromUserId": "west-saki",
+      "toUserId": "west-aya",
+      "type": "event",
+      "strength": 3,
+      "note": "デザインイベントで一緒に発表した"
     }
   ],
   "events": [
@@ -304,6 +748,7 @@
       "title": "線形代数もくもく会",
       "time": "5/02 16:00",
       "format": "図書館2階で証明問題を一緒に解く自主勉強会",
+      "is_live": false,
       "participants": ["east-yuki", "east-mao", "east-airi"]
     },
     {
@@ -312,7 +757,96 @@
       "title": "環境構築ヘルプデスク",
       "time": "5/04 19:00",
       "format": "先輩が後輩のPC環境構築を手伝うミニイベント",
+      "is_live": false,
       "participants": ["east-haruto", "east-kai", "east-ren"]
+    },
+    {
+      "id": "event-east-3",
+      "communityId": "campus-east",
+      "title": "アルゴリズム勉強会",
+      "time": "今すぐ",
+      "format": "対面議論",
+      "is_live": true,
+      "location": "情報棟3F自習室",
+      "creatorUserId": "east-kei",
+      "participants": ["east-kei", "east-haruto", "east-sora"]
+    },
+    {
+      "id": "event-east-4",
+      "communityId": "campus-east",
+      "title": "機械学習ハンズオン",
+      "time": "今すぐ",
+      "format": "対面議論",
+      "is_live": true,
+      "location": "情報棟B102",
+      "creatorUserId": "east-ren",
+      "participants": ["east-ren", "east-sota", "east-haruto"]
+    },
+    {
+      "id": "event-east-5",
+      "communityId": "campus-east",
+      "title": "微分積分自習会",
+      "time": "今すぐ",
+      "format": "対面議論",
+      "is_live": true,
+      "location": "数学棟演習室",
+      "creatorUserId": "east-nana",
+      "participants": ["east-nana", "east-daichi", "east-miku"]
+    },
+    {
+      "id": "event-east-6",
+      "communityId": "campus-east",
+      "title": "Python入門ワークショップ",
+      "time": "今すぐ",
+      "format": "対面議論",
+      "is_live": true,
+      "location": "情報棟PC室1",
+      "creatorUserId": "east-haruto",
+      "participants": ["east-haruto", "east-sora", "east-yuki", "east-airi"]
+    },
+    {
+      "id": "event-east-7",
+      "communityId": "campus-east",
+      "title": "量子力学読書会",
+      "time": "今すぐ",
+      "format": "対面議論",
+      "is_live": true,
+      "location": "物理棟ゼミ室",
+      "creatorUserId": "east-mao",
+      "participants": ["east-mao", "east-ayaka", "east-riku"]
+    },
+    {
+      "id": "event-east-8",
+      "communityId": "campus-east",
+      "title": "データベース入門",
+      "time": "今すぐ",
+      "format": "対面議論",
+      "is_live": true,
+      "location": "情報棟B102",
+      "creatorUserId": "east-hana",
+      "participants": ["east-hana", "east-kota", "east-yuna"]
+    },
+    {
+      "id": "event-east-9",
+      "communityId": "campus-east",
+      "title": "競技プログラミング練習会",
+      "time": "今すぐ",
+      "format": "対面議論",
+      "is_live": true,
+      "location": "情報棟PC室2",
+      "creatorUserId": "east-kei",
+      "participants": ["east-kei", "east-haruto", "east-ren", "east-sota"]
+    },
+    {
+      "id": "event-east-10",
+      "communityId": "campus-east",
+      "title": "数値計算勉強会",
+      "time": "今すぐ",
+      "format": "対面議論",
+      "is_live": true,
+      "location": "数学棟4F",
+      "creatorUserId": "east-ryota",
+      "participants": ["east-ryota", "east-mao", "east-nana"]
     },
     {
       "id": "event-west-1",
@@ -320,6 +854,7 @@
       "title": "文理融合アイデアソン",
       "time": "5/06 14:00",
       "format": "異分野チームでプロダクトアイデアを考えるワークショップ",
+      "is_live": false,
       "participants": ["west-mika", "west-taro", "west-saki"]
     },
     {
@@ -328,7 +863,928 @@
       "title": "統計ランチ勉強会",
       "time": "5/08 12:00",
       "format": "昼休みに統計の基礎を気軽に学ぶ少人数セッション",
+      "is_live": false,
       "participants": ["west-taro", "west-shun", "west-hina"]
+    },
+    {
+      "id": "event-west-3",
+      "communityId": "campus-west",
+      "title": "デザインクリティーク",
+      "time": "今すぐ",
+      "format": "対面議論",
+      "is_live": true,
+      "location": "デザイン棟ラウンジ",
+      "creatorUserId": "west-hina",
+      "participants": ["west-hina", "west-saki", "west-noa"]
+    },
+    {
+      "id": "event-west-4",
+      "communityId": "campus-west",
+      "title": "データ可視化ハンズオン",
+      "time": "今すぐ",
+      "format": "対面議論",
+      "is_live": true,
+      "location": "学習サポートセンター",
+      "creatorUserId": "west-kohei",
+      "participants": ["west-kohei", "west-taro", "west-shun"]
+    },
+    {
+      "id": "event-west-5",
+      "communityId": "campus-west",
+      "title": "社会調査方法論読書会",
+      "time": "今すぐ",
+      "format": "対面議論",
+      "is_live": true,
+      "location": "社会科学棟セミナー室3",
+      "creatorUserId": "west-yuuki",
+      "participants": ["west-yuuki", "west-taro", "west-jun"]
+    },
+    {
+      "id": "event-west-6",
+      "communityId": "campus-west",
+      "title": "英語論文ライティング会",
+      "time": "今すぐ",
+      "format": "対面議論",
+      "is_live": true,
+      "location": "図書館1Fラーニングコモンズ",
+      "creatorUserId": "west-rena",
+      "participants": ["west-rena", "west-kana", "west-jun"]
+    },
+    {
+      "id": "event-west-7",
+      "communityId": "campus-west",
+      "title": "UI/UXワークショップ",
+      "time": "今すぐ",
+      "format": "対面議論",
+      "is_live": true,
+      "location": "デザイン棟D201",
+      "creatorUserId": "west-mika",
+      "participants": ["west-mika", "west-saki", "west-aya", "west-noa"]
+    },
+    {
+      "id": "event-west-8",
+      "communityId": "campus-west",
+      "title": "文理融合プロジェクト相談会",
+      "time": "今すぐ",
+      "format": "対面議論",
+      "is_live": true,
+      "location": "中央食堂2F会議室",
+      "creatorUserId": "west-suzuki",
+      "participants": ["west-suzuki", "west-mika", "west-hina", "west-taro"]
+    },
+    {
+      "id": "event-west-9",
+      "communityId": "campus-west",
+      "title": "Figma入門ハンズオン",
+      "time": "今すぐ",
+      "format": "対面議論",
+      "is_live": true,
+      "location": "デザイン棟PC室",
+      "creatorUserId": "west-saki",
+      "participants": ["west-saki", "west-noa", "west-aya"]
+    },
+    {
+      "id": "event-west-10",
+      "communityId": "campus-west",
+      "title": "統計学ミニ講義",
+      "time": "今すぐ",
+      "format": "対面議論",
+      "is_live": true,
+      "location": "社会科学棟大講義室前ラウンジ",
+      "creatorUserId": "west-taro",
+      "participants": ["west-taro", "west-shun", "west-mei", "west-kohei"]
+    }
+  ],
+  "sos_requests": [
+    {
+      "id": "sos-east-001",
+      "communityId": "campus-east",
+      "userId": "east-yuki",
+      "topic": "線形代数の固有値分解が全然わからない。教科書を読んでも意味不明で、演習問題が解けない。",
+      "tags": ["線形代数", "固有値", "数学"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-002",
+      "communityId": "campus-east",
+      "userId": "east-daichi",
+      "topic": "行列の対角化の手順がわかりません。固有値を求めた後どうすればよいか教えてください。",
+      "tags": ["線形代数", "数学"],
+      "status": "resolved",
+      "responderId": "east-mao"
+    },
+    {
+      "id": "sos-east-003",
+      "communityId": "campus-east",
+      "userId": "east-airi",
+      "topic": "ジョルダン標準形の意味と使い方を教えてほしい。対角化できない場合の扱いが全くわからない。",
+      "tags": ["線形代数", "代数学"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-004",
+      "communityId": "campus-east",
+      "userId": "east-yuki",
+      "topic": "グラム・シュミットの正規直交化手順でミスが続いている。どのステップで間違えやすいか教えてほしい。",
+      "tags": ["線形代数", "数学"],
+      "status": "resolved",
+      "responderId": "east-mao"
+    },
+    {
+      "id": "sos-east-005",
+      "communityId": "campus-east",
+      "userId": "east-daichi",
+      "topic": "行列式の幾何的な意味が全然イメージできない。数値としての計算はできるけど概念がつかめない。",
+      "tags": ["線形代数", "数学"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-006",
+      "communityId": "campus-east",
+      "userId": "east-sora",
+      "topic": "線形写像とベクトル空間の関係が理解できていない。核と像のイメージがつかめない。",
+      "tags": ["線形代数", "数学"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-007",
+      "communityId": "campus-east",
+      "userId": "east-airi",
+      "topic": "特異値分解（SVD）って何に使うの？機械学習との関係を教えてもらいたい。",
+      "tags": ["線形代数", "機械学習"],
+      "status": "resolved",
+      "responderId": "east-ren"
+    },
+    {
+      "id": "sos-east-008",
+      "communityId": "campus-east",
+      "userId": "east-kai",
+      "topic": "固有空間と固有ベクトルの違いがよくわからない。教科書の説明が難しすぎる。",
+      "tags": ["線形代数", "数学"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-009",
+      "communityId": "campus-east",
+      "userId": "east-luna",
+      "topic": "ベクトル空間の基底変換の計算でケアレスミスが多い。どこで間違えやすいか教えてほしい。",
+      "tags": ["線形代数", "代数学"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-010",
+      "communityId": "campus-east",
+      "userId": "east-miku",
+      "topic": "随伴行列と転置行列の違いを教えて。複素数が絡むと混乱する。",
+      "tags": ["線形代数", "数学"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-011",
+      "communityId": "campus-east",
+      "userId": "east-sora",
+      "topic": "Pythonのリスト内包表記がよくわからない。forループとどう使い分けるのか教えてほしい。",
+      "tags": ["Python", "プログラミング"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-012",
+      "communityId": "campus-east",
+      "userId": "east-kai",
+      "topic": "再帰関数でスタックオーバーフローが起きてしまう。どうすれば回避できる？",
+      "tags": ["プログラミング", "アルゴリズム"],
+      "status": "resolved",
+      "responderId": "east-haruto"
+    },
+    {
+      "id": "sos-east-013",
+      "communityId": "campus-east",
+      "userId": "east-yuki",
+      "topic": "ダイクストラ法の実装で詰まっている。優先度付きキューの使い方がわからない。",
+      "tags": ["アルゴリズム", "データ構造"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-014",
+      "communityId": "campus-east",
+      "userId": "east-sora",
+      "topic": "動的計画法の考え方がわからない。部分問題への分解の仕方を教えてほしい。",
+      "tags": ["アルゴリズム", "プログラミング"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-015",
+      "communityId": "campus-east",
+      "userId": "east-yuna",
+      "topic": "Gitのブランチ戦略がよくわからない。Git Flowを使うべきかどうか迷っている。",
+      "tags": ["プログラミング", "ソフトウェア工学"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-016",
+      "communityId": "campus-east",
+      "userId": "east-sora",
+      "topic": "C言語のポインタのポインタが理解できない。**pというのが何を意味するのか全然わからない。",
+      "tags": ["プログラミング", "C言語"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-017",
+      "communityId": "campus-east",
+      "userId": "east-yuna",
+      "topic": "Pythonの型ヒントってどんな場面で使うべきか教えてほしい。mypy も使ったほうがいい？",
+      "tags": ["Python", "プログラミング"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-018",
+      "communityId": "campus-east",
+      "userId": "east-kai",
+      "topic": "グラフの深さ優先探索と幅優先探索の使い分けを教えて。どちらを使えばいいか判断できない。",
+      "tags": ["アルゴリズム", "データ構造"],
+      "status": "resolved",
+      "responderId": "east-haruto"
+    },
+    {
+      "id": "sos-east-019",
+      "communityId": "campus-east",
+      "userId": "east-kei",
+      "topic": "二分探索木の削除操作が難しい。子が2つあるノードの削除でいつもミスする。",
+      "tags": ["データ構造", "アルゴリズム"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-020",
+      "communityId": "campus-east",
+      "userId": "east-daichi",
+      "topic": "計算量の評価方法がよくわからない。O記法でどう表現するか判断に迷う。",
+      "tags": ["アルゴリズム", "プログラミング"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-021",
+      "communityId": "campus-east",
+      "userId": "east-kota",
+      "topic": "Rustの所有権とライフタイムの概念が難しい。借用チェッカーとどう付き合えばいいか教えてほしい。",
+      "tags": ["プログラミング"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-022",
+      "communityId": "campus-east",
+      "userId": "east-haruto",
+      "topic": "DockerとKubernetesの概念的な違いを教えてほしい。どちらをいつ使うか判断できない。",
+      "tags": ["プログラミング", "ソフトウェア工学"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-023",
+      "communityId": "campus-east",
+      "userId": "east-hana",
+      "topic": "複雑な正規表現のパターンを書けない。先読み・後読みアサーションの使い方を教えてほしい。",
+      "tags": ["プログラミング"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-024",
+      "communityId": "campus-east",
+      "userId": "east-sota",
+      "topic": "テスト駆動開発（TDD）の始め方を教えてほしい。どこから書き始めるのかわからない。",
+      "tags": ["プログラミング", "ソフトウェア工学"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-025",
+      "communityId": "campus-east",
+      "userId": "east-daichi",
+      "topic": "ε-δ論法の感覚がつかめない。極限の厳密な定義がなぜ必要なのか、直感的に理解したい。",
+      "tags": ["微分積分", "数学"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-026",
+      "communityId": "campus-east",
+      "userId": "east-yuki",
+      "topic": "多変数関数の偏微分の計算が怪しい。どの変数で微分しているのかがよくわからなくなる。",
+      "tags": ["微分積分", "数学"],
+      "status": "resolved",
+      "responderId": "east-tanaka"
+    },
+    {
+      "id": "sos-east-027",
+      "communityId": "campus-east",
+      "userId": "east-riku",
+      "topic": "フーリエ変換の直感的な意味を教えてほしい。なぜ周波数成分に分解できるのかがわからない。",
+      "tags": ["微分方程式", "数値計算"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-028",
+      "communityId": "campus-east",
+      "userId": "east-airi",
+      "topic": "テイラー展開の収束半径はどうやって求めるの？比率テストの使い方がいつも怪しい。",
+      "tags": ["微分積分", "数学"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-029",
+      "communityId": "campus-east",
+      "userId": "east-riku",
+      "topic": "ラプラス変換の逆変換が難しい。部分分数分解のどこでミスしているか教えてほしい。",
+      "tags": ["微分方程式", "数学"],
+      "status": "resolved",
+      "responderId": "east-mao"
+    },
+    {
+      "id": "sos-east-030",
+      "communityId": "campus-east",
+      "userId": "east-miku",
+      "topic": "留数定理の使い方がわからない。複素積分でどうやって特異点の周りを計算するのか教えてほしい。",
+      "tags": ["微分積分", "数学"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-031",
+      "communityId": "campus-east",
+      "userId": "east-nana",
+      "topic": "偏微分方程式の境界値問題の解法を教えてほしい。フーリエ級数を使う場面がわからない。",
+      "tags": ["微分方程式", "数学"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-032",
+      "communityId": "campus-east",
+      "userId": "east-daichi",
+      "topic": "リーマン積分の厳密な定義がわからない。上積分と下積分の関係から教えてほしい。",
+      "tags": ["微分積分", "数学"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-033",
+      "communityId": "campus-east",
+      "userId": "east-nana",
+      "topic": "ベイズ定理の条件付き確率が混乱する。事前分布・事後分布の意味を実例で教えてほしい。",
+      "tags": ["統計", "確率論"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-034",
+      "communityId": "campus-east",
+      "userId": "east-miku",
+      "topic": "中心極限定理の証明が難しい。特性関数を使った証明のどこでつまずいているか見てほしい。",
+      "tags": ["統計", "確率論"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-035",
+      "communityId": "campus-east",
+      "userId": "east-ren",
+      "topic": "最尤推定と区間推定の概念的な違いを改めて整理したい。適切な使い分けを教えてほしい。",
+      "tags": ["統計", "機械学習"],
+      "status": "resolved",
+      "responderId": "east-nana"
+    },
+    {
+      "id": "sos-east-036",
+      "communityId": "campus-east",
+      "userId": "east-sota",
+      "topic": "マルコフ連鎖の定常分布の求め方を教えてほしい。強化学習との繋がりも知りたい。",
+      "tags": ["確率論", "機械学習"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-037",
+      "communityId": "campus-east",
+      "userId": "east-yuki",
+      "topic": "カイ二乗検定の前提条件って何？サンプル数が少ないときどうすればいいか教えてほしい。",
+      "tags": ["統計", "数学"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-038",
+      "communityId": "campus-east",
+      "userId": "east-nana",
+      "topic": "分散分析（ANOVA）の結果の解釈が難しい。多重比較補正はいつ必要？",
+      "tags": ["統計"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-039",
+      "communityId": "campus-east",
+      "userId": "east-kei",
+      "topic": "ポアソン過程ってどういうものか教えてほしい。指数分布との関係が整理できていない。",
+      "tags": ["確率論", "数学"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-040",
+      "communityId": "campus-east",
+      "userId": "east-ryota",
+      "topic": "モンテカルロシミュレーションをPythonで実装したい。乱数生成と収束の確認方法を教えてほしい。",
+      "tags": ["数値計算", "確率論", "Python"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-041",
+      "communityId": "campus-east",
+      "userId": "east-mao",
+      "topic": "量子力学の波動関数の確率解釈がわからない。コペンハーゲン解釈をわかりやすく説明してほしい。",
+      "tags": ["量子力学", "物理"],
+      "status": "resolved",
+      "responderId": "east-tanaka"
+    },
+    {
+      "id": "sos-east-042",
+      "communityId": "campus-east",
+      "userId": "east-riku",
+      "topic": "マクスウェル方程式の物理的な意味がつかめない。式の意味を直感的に説明してほしい。",
+      "tags": ["電磁気学", "物理"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-043",
+      "communityId": "campus-east",
+      "userId": "east-ayaka",
+      "topic": "熱力学の第2法則とエントロピーの関係を教えてほしい。なぜエントロピーは増大するの？",
+      "tags": ["物理"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-044",
+      "communityId": "campus-east",
+      "userId": "east-mao",
+      "topic": "時間依存シュレーディンガー方程式の解き方を教えてほしい。分離変数法の適用条件がわからない。",
+      "tags": ["量子力学", "微分方程式"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-045",
+      "communityId": "campus-east",
+      "userId": "east-riku",
+      "topic": "ローレンツ変換の導出がわからない。なぜ光速が不変なのかという前提と矛盾しないのか教えてほしい。",
+      "tags": ["物理"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-046",
+      "communityId": "campus-east",
+      "userId": "east-ayaka",
+      "topic": "剛体の回転運動方程式で慣性テンソルの扱いがわからない。主慣性モーメントの計算を教えてほしい。",
+      "tags": ["物理"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-047",
+      "communityId": "campus-east",
+      "userId": "east-sota",
+      "topic": "勾配降下法の学習率の選び方がわからない。大きすぎると発散、小さすぎると遅すぎる問題。",
+      "tags": ["機械学習", "数値計算"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-048",
+      "communityId": "campus-east",
+      "userId": "east-ren",
+      "topic": "ニューラルネットワークの過学習を防ぐ方法を教えてほしい。Dropout以外の手法も知りたい。",
+      "tags": ["機械学習", "プログラミング"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-049",
+      "communityId": "campus-east",
+      "userId": "east-ren",
+      "topic": "LSTMとTransformerの違いを教えてほしい。NLPタスクでどちらを使うべきか判断したい。",
+      "tags": ["機械学習"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-050",
+      "communityId": "campus-east",
+      "userId": "east-ryota",
+      "topic": "数値積分のガウス求積法って何？シンプソン則との精度の違いを教えてほしい。",
+      "tags": ["数値計算", "数学"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-051",
+      "communityId": "campus-east",
+      "userId": "east-sota",
+      "topic": "SVMのカーネルトリックの意味がわからない。なぜ高次元に写像しなくていいのか理解したい。",
+      "tags": ["機械学習", "数学"],
+      "status": "resolved",
+      "responderId": "east-ren"
+    },
+    {
+      "id": "sos-east-052",
+      "communityId": "campus-east",
+      "userId": "east-kei",
+      "topic": "強化学習のQ学習をゼロから実装したい。状態空間と報酬設計のポイントを教えてほしい。",
+      "tags": ["機械学習", "プログラミング"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-053",
+      "communityId": "campus-east",
+      "userId": "east-ryota",
+      "topic": "数値微分の精度が低くて困っている。中心差分と前進差分の使い分けを教えてほしい。",
+      "tags": ["数値計算", "数学"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-054",
+      "communityId": "campus-east",
+      "userId": "east-nana",
+      "topic": "PCAとt-SNEの使い分けを教えてほしい。高次元データの可視化でどちらを選ぶべきか。",
+      "tags": ["機械学習", "統計"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-055",
+      "communityId": "campus-east",
+      "userId": "east-kota",
+      "topic": "プロセスとスレッドの違いを教えてほしい。コンテキストスイッチのコストも含めて理解したい。",
+      "tags": ["OS", "プログラミング"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-056",
+      "communityId": "campus-east",
+      "userId": "east-kota",
+      "topic": "TCPの3ウェイハンドシェイクを説明してほしい。なぜ3回のやり取りが必要なのか理解したい。",
+      "tags": ["ネットワーク", "OS"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-057",
+      "communityId": "campus-east",
+      "userId": "east-hana",
+      "topic": "SQLのJOINの種類と使い分けを教えてほしい。LEFT JOINとINNER JOINをいつ使うか判断できない。",
+      "tags": ["データベース", "SQL"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-058",
+      "communityId": "campus-east",
+      "userId": "east-hana",
+      "topic": "インデックスを張るべき列の見極め方を教えてほしい。クエリのパフォーマンスが改善しない。",
+      "tags": ["データベース", "SQL"],
+      "status": "resolved",
+      "responderId": "east-ren"
+    },
+    {
+      "id": "sos-east-059",
+      "communityId": "campus-east",
+      "userId": "east-kota",
+      "topic": "デッドロックが発生する条件と回避策を教えてほしい。トランザクション管理で詰まっている。",
+      "tags": ["OS", "データベース"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-060",
+      "communityId": "campus-east",
+      "userId": "east-yuna",
+      "topic": "HTTPとHTTPSの違いとSSL/TLSの仕組みをわかりやすく教えてほしい。証明書の役割も知りたい。",
+      "tags": ["ネットワーク", "セキュリティ"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-061",
+      "communityId": "campus-east",
+      "userId": "east-sora",
+      "topic": "ファイルシステムのiノードって何？ファイルの実体とどう結びついているのか理解したい。",
+      "tags": ["OS", "プログラミング"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-062",
+      "communityId": "campus-east",
+      "userId": "east-hana",
+      "topic": "NoSQLとRDBMSの選択基準を教えてほしい。どんなユースケースでどちらを使うべきか判断したい。",
+      "tags": ["データベース"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-063",
+      "communityId": "campus-east",
+      "userId": "east-mao",
+      "topic": "LaTeXで複雑な数式を綺麗に書くコツを教えてほしい。align環境の使い方もわからない。",
+      "tags": ["プログラミング", "数学"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-064",
+      "communityId": "campus-east",
+      "userId": "east-airi",
+      "topic": "研究室配属でどこを選べばいいか迷っている。数学か情報かで悩んでいる。",
+      "tags": ["数学", "プログラミング"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-065",
+      "communityId": "campus-east",
+      "userId": "east-ren",
+      "topic": "卒論のテーマの絞り方がわからない。広すぎる問いをどう絞ればいいか教えてほしい。",
+      "tags": ["機械学習"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-066",
+      "communityId": "campus-east",
+      "userId": "east-daichi",
+      "topic": "数学の証明問題でどこから始めるべきかわからない。帰納法と背理法の使い分けを教えてほしい。",
+      "tags": ["数学", "代数学"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-067",
+      "communityId": "campus-east",
+      "userId": "east-kei",
+      "topic": "競技プログラミングの効率的な練習方法を教えてほしい。AtCoder Beginner Contest の活用法も知りたい。",
+      "tags": ["アルゴリズム", "プログラミング"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-068",
+      "communityId": "campus-east",
+      "userId": "east-haruto",
+      "topic": "エンジニアのインターンシップの探し方を教えてほしい。どのサイトで探すのが効率的か。",
+      "tags": ["プログラミング", "ソフトウェア工学"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-069",
+      "communityId": "campus-east",
+      "userId": "east-mao",
+      "topic": "物理の論文を英語で書くコツを教えてほしい。英語の技術文書を書いたことがほとんどない。",
+      "tags": ["数学", "量子力学"],
+      "status": "active"
+    },
+    {
+      "id": "sos-east-070",
+      "communityId": "campus-east",
+      "userId": "east-ryota",
+      "topic": "数値計算のコードをGPUで高速化したい。CUDAとPyCUDAのどちらから始めるべきか教えてほしい。",
+      "tags": ["数値計算", "Python"],
+      "status": "active"
+    },
+    {
+      "id": "sos-west-001",
+      "communityId": "campus-west",
+      "userId": "west-shun",
+      "topic": "Rでt検定を実施する方法を教えてほしい。t.test関数の引数の意味がわからない。",
+      "tags": ["統計", "R言語"],
+      "status": "active"
+    },
+    {
+      "id": "sos-west-002",
+      "communityId": "campus-west",
+      "userId": "west-ryuki",
+      "topic": "ExcelのPivotTableでクロス集計をしたい。フィルタと集計方法の設定がうまくいかない。",
+      "tags": ["データ分析"],
+      "status": "active"
+    },
+    {
+      "id": "sos-west-003",
+      "communityId": "campus-west",
+      "userId": "west-shun",
+      "topic": "回帰分析の偏回帰係数の解釈が難しい。標準化係数と非標準化係数の使い分けを教えてほしい。",
+      "tags": ["統計"],
+      "status": "resolved",
+      "responderId": "west-taro"
+    },
+    {
+      "id": "sos-west-004",
+      "communityId": "campus-west",
+      "userId": "west-mei",
+      "topic": "因子分析と主成分分析の違いを教えて。SPSSでどちらを使うべきか判断できない。",
+      "tags": ["統計"],
+      "status": "active"
+    },
+    {
+      "id": "sos-west-005",
+      "communityId": "campus-west",
+      "userId": "west-kohei",
+      "topic": "Pythonのpandasでデータ前処理をしたい。欠損値補完と外れ値除去のベストプラクティスを教えてほしい。",
+      "tags": ["Python", "データ分析"],
+      "status": "active"
+    },
+    {
+      "id": "sos-west-006",
+      "communityId": "campus-west",
+      "userId": "west-mei",
+      "topic": "多重共線性の対処方法を教えてほしい。VIFの閾値はいくつが妥当か教えてほしい。",
+      "tags": ["統計"],
+      "status": "active"
+    },
+    {
+      "id": "sos-west-007",
+      "communityId": "campus-west",
+      "userId": "west-kohei",
+      "topic": "時系列データのARIMAモデルを使いたい。定常性の確認方法とモデル選択基準を教えてほしい。",
+      "tags": ["統計", "データ分析"],
+      "status": "active"
+    },
+    {
+      "id": "sos-west-008",
+      "communityId": "campus-west",
+      "userId": "west-mei",
+      "topic": "SPSSで一元配置分散分析をしたい。事後検定（Tukey法）の結果の読み方がわからない。",
+      "tags": ["統計"],
+      "status": "active"
+    },
+    {
+      "id": "sos-west-009",
+      "communityId": "campus-west",
+      "userId": "west-saki",
+      "topic": "FigmaでコンポーネントのAuto Layoutを使いたい。ネストしたコンポーネントの整列がうまくいかない。",
+      "tags": ["UI/UX", "Figma"],
+      "status": "active"
+    },
+    {
+      "id": "sos-west-010",
+      "communityId": "campus-west",
+      "userId": "west-noa",
+      "topic": "カラーパレットの作り方を教えてほしい。色相環の使い方と補色のルールがわからない。",
+      "tags": ["UI/UX", "デザイン"],
+      "status": "active"
+    },
+    {
+      "id": "sos-west-011",
+      "communityId": "campus-west",
+      "userId": "west-saki",
+      "topic": "モバイルアプリのナビゲーション設計でタブバーとドロワーのどちらを使うべきか教えてほしい。",
+      "tags": ["UI/UX"],
+      "status": "resolved",
+      "responderId": "west-mika"
+    },
+    {
+      "id": "sos-west-012",
+      "communityId": "campus-west",
+      "userId": "west-hina",
+      "topic": "ユーザビリティテストの実施方法を教えてほしい。思考発話法の進め方がわからない。",
+      "tags": ["UI/UX"],
+      "status": "active"
+    },
+    {
+      "id": "sos-west-013",
+      "communityId": "campus-west",
+      "userId": "west-noa",
+      "topic": "IllustratorとPhotoshopの使い分けを教えてほしい。ロゴを作るときどちらを使うべきか。",
+      "tags": ["デザイン", "Adobe"],
+      "status": "active"
+    },
+    {
+      "id": "sos-west-014",
+      "communityId": "campus-west",
+      "userId": "west-aya",
+      "topic": "アクセシビリティ対応のデザインって何から始めるの？色のコントラスト比や文字サイズの基準を教えてほしい。",
+      "tags": ["UI/UX", "デザイン"],
+      "status": "active"
+    },
+    {
+      "id": "sos-west-015",
+      "communityId": "campus-west",
+      "userId": "west-yuuki",
+      "topic": "質問紙調査の尺度設計を教えてほしい。リッカート尺度と意味微分法の違いがわからない。",
+      "tags": ["社会調査"],
+      "status": "active"
+    },
+    {
+      "id": "sos-west-016",
+      "communityId": "campus-west",
+      "userId": "west-yuuki",
+      "topic": "半構造化インタビューのデータをKJ法で分析したい。カテゴリ化のコツを教えてほしい。",
+      "tags": ["社会調査"],
+      "status": "active"
+    },
+    {
+      "id": "sos-west-017",
+      "communityId": "campus-west",
+      "userId": "west-taro",
+      "topic": "フィールドワークのフィールドノーツの書き方を教えてほしい。何を記録すべきか迷っている。",
+      "tags": ["社会調査"],
+      "status": "active"
+    },
+    {
+      "id": "sos-west-018",
+      "communityId": "campus-west",
+      "userId": "west-mei",
+      "topic": "量的研究と質的研究の組み合わせ方（混合研究法）を教えてほしい。いつ併用すべきか判断できない。",
+      "tags": ["統計", "社会調査"],
+      "status": "active"
+    },
+    {
+      "id": "sos-west-019",
+      "communityId": "campus-west",
+      "userId": "west-jun",
+      "topic": "社会科学の文献調査で使えるデータベースを教えてほしい。CiNiiとJ-STAGEの使い分けもわからない。",
+      "tags": ["社会科学"],
+      "status": "active"
+    },
+    {
+      "id": "sos-west-020",
+      "communityId": "campus-west",
+      "userId": "west-yuuki",
+      "topic": "研究の倫理審査の申請書を書くのが難しい。インフォームドコンセントの記載内容を教えてほしい。",
+      "tags": ["社会調査"],
+      "status": "active"
+    },
+    {
+      "id": "sos-west-021",
+      "communityId": "campus-west",
+      "userId": "west-taro",
+      "topic": "Pythonのrequestsとlxmlを使ってWebスクレイピングしたい。社会調査データを収集する方法を教えてほしい。",
+      "tags": ["Python", "社会調査", "データ分析"],
+      "status": "active"
+    },
+    {
+      "id": "sos-west-022",
+      "communityId": "campus-west",
+      "userId": "west-taro",
+      "topic": "データ可視化のツールをTableauかPythonのmatplotlibで迷っている。どちらがいい？",
+      "tags": ["データ分析"],
+      "status": "resolved",
+      "responderId": "west-kohei"
+    },
+    {
+      "id": "sos-west-023",
+      "communityId": "campus-west",
+      "userId": "west-aya",
+      "topic": "Notionでチームのナレッジ管理をしたい。データベースとページの使い分けを教えてほしい。",
+      "tags": ["ツール活用"],
+      "status": "active"
+    },
+    {
+      "id": "sos-west-024",
+      "communityId": "campus-west",
+      "userId": "west-shun",
+      "topic": "文系の自分でもプログラミングを学ぶ意義はある？Pythonから始めるべきか、Rから始めるべきか迷っている。",
+      "tags": ["プログラミング", "統計"],
+      "status": "active"
+    },
+    {
+      "id": "sos-west-025",
+      "communityId": "campus-west",
+      "userId": "west-rena",
+      "topic": "論文のレビューやサーベイに使えるAIツールを教えてほしい。Notionとの連携方法も知りたい。",
+      "tags": ["研究", "ツール活用"],
+      "status": "active"
+    },
+    {
+      "id": "sos-west-026",
+      "communityId": "campus-west",
+      "userId": "west-hina",
+      "topic": "異分野の人と共同研究するときのコミュニケーションのコツを教えてほしい。認識のずれをどう防ぐか。",
+      "tags": ["学際研究"],
+      "status": "active"
+    },
+    {
+      "id": "sos-west-027",
+      "communityId": "campus-west",
+      "userId": "west-rena",
+      "topic": "英語論文のIMRaD構成をわかりやすく教えてほしい。Methodsセクションの書き方がわからない。",
+      "tags": ["英語論文"],
+      "status": "active"
+    },
+    {
+      "id": "sos-west-028",
+      "communityId": "campus-west",
+      "userId": "west-jun",
+      "topic": "法学の判例読解が苦手。事実関係と法的判断の整理の仕方を教えてほしい。",
+      "tags": ["法学"],
+      "status": "active"
+    },
+    {
+      "id": "sos-west-029",
+      "communityId": "campus-west",
+      "userId": "west-saki",
+      "topic": "デザイン学科の卒業論文のテーマ設定が難しい。プロダクトとリサーチをどう結びつけるか教えてほしい。",
+      "tags": ["UI/UX", "デザイン"],
+      "status": "active"
+    },
+    {
+      "id": "sos-west-030",
+      "communityId": "campus-west",
+      "userId": "west-kana",
+      "topic": "発表用スライドのデザインを相談したい。情報の整理と視覚的なわかりやすさのバランスが難しい。",
+      "tags": ["デザイン", "プレゼン"],
+      "status": "active"
+    },
+    {
+      "id": "sos-west-031",
+      "communityId": "campus-west",
+      "userId": "west-kana",
+      "topic": "学術的な文章を書くのが苦手。論文らしい文体と構成のコツを教えてほしい。",
+      "tags": ["文章表現"],
+      "status": "active"
+    },
+    {
+      "id": "sos-west-032",
+      "communityId": "campus-west",
+      "userId": "west-jun",
+      "topic": "ゼミでの議論にうまく参加できなくて困っている。発言するタイミングと内容の考え方を教えてほしい。",
+      "tags": ["社会科学"],
+      "status": "active"
     }
   ]
 }

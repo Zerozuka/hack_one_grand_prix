@@ -28,7 +28,13 @@
       "Bash(git add *)",
       "Bash(git commit *)",
       "Bash(git push *)",
-      "Bash(gh pr *)"
+      "Bash(gh pr *)",
+      "Bash(gh repo *)",
+      "Bash(gh label *)",
+      "Bash(gh issue *)",
+      "Bash(git -C /Users/rei_ishizuka/ghq/github.com/Zerozuka/hack_one_grand_prix status)",
+      "Bash(git -C /Users/rei_ishizuka/ghq/github.com/Zerozuka/hack_one_grand_prix diff --stat)",
+      "Bash(git *)"
     ]
   }
 }

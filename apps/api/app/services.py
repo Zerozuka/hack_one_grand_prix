@@ -47,6 +47,7 @@ from app.schemas import (
     CourseImportPayload,
     CourseImportResult,
     CourseListItem,
+    CourseListPage,
     CourseOut,
     DashboardOut,
     EventOut,
@@ -364,7 +365,9 @@ def build_dashboard(db: Session, community_id: str, actor_id: str, selected_user
     )
 
 
-def list_courses(db: Session, query: str | None, limit: int = 30) -> list[CourseListItem]:
+def list_courses(
+    db: Session, query: str | None, offset: int = 0, limit: int = 20
+) -> CourseListPage:
     stmt = select(Course).order_by(Course.course_title.asc())
     if query:
         like = f"%{query}%"
@@ -375,33 +378,43 @@ def list_courses(db: Session, query: str | None, limit: int = 30) -> list[Course
                 Course.contents.ilike(like),
             )
         )
-    courses = db.scalars(stmt.limit(limit)).all()
+    total = db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
+    courses = db.scalars(stmt.offset(offset).limit(limit)).all()
     course_ids = [course.id for course in courses]
-    topic_counts = {
-        row.course_id: row.count
-        for row in db.execute(
-            select(CourseTopic.course_id, func.count(CourseTopic.id).label("count"))
-            .where(CourseTopic.course_id.in_(course_ids))
-            .group_by(CourseTopic.course_id)
-        ).all()
-    } if course_ids else {}
-    departments = defaultdict(list)
+    topic_counts = (
+        {
+            row.course_id: row.count
+            for row in db.execute(
+                select(CourseTopic.course_id, func.count(CourseTopic.id).label("count"))
+                .where(CourseTopic.course_id.in_(course_ids))
+                .group_by(CourseTopic.course_id)
+            ).all()
+        }
+        if course_ids
+        else {}
+    )
+    departments: dict[str, list[str]] = defaultdict(list)
     if course_ids:
-        for row in db.scalars(select(CourseDepartment).where(CourseDepartment.course_id.in_(course_ids))).all():
+        for row in db.scalars(
+            select(CourseDepartment).where(CourseDepartment.course_id.in_(course_ids))
+        ).all():
             departments[row.course_id].append(row.name)
-    return [
-        CourseListItem(
-            id=course.id,
-            course_title=course.course_title,
-            instructor=course.instructor,
-            term=course.term,
-            day=course.day,
-            period=course.period,
-            departments=departments[course.id],
-            lecture_plan_count=topic_counts.get(course.id, 0),
-        )
-        for course in courses
-    ]
+    return CourseListPage(
+        items=[
+            CourseListItem(
+                id=course.id,
+                course_title=course.course_title,
+                instructor=course.instructor,
+                term=course.term,
+                day=course.day,
+                period=course.period,
+                departments=departments[course.id],
+                lecture_plan_count=topic_counts.get(course.id, 0),
+            )
+            for course in courses
+        ],
+        total=total,
+    )
 
 
 def get_course_detail(db: Session, course_id: str) -> CourseOut | None:

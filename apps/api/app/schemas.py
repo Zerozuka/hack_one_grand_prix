@@ -125,6 +125,11 @@ class CourseListItem(BaseModel):
     lecture_plan_count: int
 
 
+class CourseListPage(BaseModel):
+    items: list[CourseListItem]
+    total: int
+
+
 class RecommendationOut(BaseModel):
     user: UserProfileOut
     score: int

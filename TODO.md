@@ -8,297 +8,218 @@ Issue をひとつ選んで中のタスクを上から順に実装すれば完�
 
 ## 優先度 1 — デモで必ず見せる機能
 
-### ✅ Issue-16: Home — 「高校のクラスで議論していたあの感覚」に寄せた Overview 再設計
+### Issue-35: Help — スレッドを開いた瞬間の自動メッセージを削除
 
-**背景 (insight.md より)**
-> 現在の Home Overview は一目見ると SOS を出して知見ネットワークで5分接続するのだろうかという
-> ふうに見える. 大学生が高校の頃のように切磋琢磨して議論・質問できる場所に見せたい.
+**背景 (insight.md 追加 5/7 19:00 より)**
+> Help に関してスレッドを開いた瞬間に「5分だけ一緒に見ます。ここで状況を教えてください。」っていきなり送らないようにしたい.
 
-また「数学・情報・物理系の知見ネットワークをベースに、物理的に近い人をすばやく見つける」という
-文言は GPS 機能が未実装のため **誤解を招く表現** なので削除する.
+**ファイル**: `apps/api/app/services.py`
 
-**ファイル**: `apps/web/app/dashboard/page.tsx`
+- [ ] `ensure_sos_chat` 関数内で `ChatMessage` を自動挿入している箇所を削除する
 
-- [x] Home ビューのヒーロー見出し・サブコピーを書き換える
-  - Before: 「SOS を出して...知見ネットワーク...5分接続」
-  - After: 「今日も誰かが困っている. 5分の会話で, 理解が変わる.」などの表現
-- [x] GPS/物理距離に言及するコピーを全て削除する
-- [x] 3〜4枚のサマリーカードを以下の内容に整理する
+#### 動作確認
 
-  | カード | 表示内容 | リンク先 |
-  |--------|----------|----------|
-  | Help | アクティブな質問数 | `?view=help` |
-  | Discussion | ライブ議論数 | `?view=discussion` |
-  | My Class | 自分のネットワーク人数 | `?view=my-class` |
-  | Syllabus | 科目数 (任意) | `?view=syllabus` |
-
-- [x] 各カードをクリックするとそのビューに遷移することを確認
-- [x] Home の印象が「SOS ツール」ではなく「学習コミュニティの入口」に変わっていることを確認
+- [ ] スレッドを開いてもチャット欄が空で始まること
+- [ ] 手動でメッセージを送ると通常通り表示されること
 
 ---
 
-### ✅ Issue-11: Discussion — 場所フィールドを復元する (リグレッション修正)
+### Issue-36: Help — UI 細部修正 (placeholder / スレッド色)
 
-**背景**
-PDFスライド17「議論ボード」では「📍 中央食堂で統計学の議論中」と **場所情報** が核心UXとして
-示されている. 自動整形ツールが場所入力フィールドを削除したため復元が必要.
-
-**ファイル**: `apps/web/components/discussion-board.tsx`
-
-- [x] `location` state を復元: `const [location, setLocation] = useState("")`
-- [x] `createMutation` の body を修正
-
-  ```typescript
-  body: JSON.stringify({
-    community_id: communityId,
-    title: newTopic,
-    time_label: "今すぐ",
-    format: "対面議論",
-    is_live: true,
-    location: location.trim() || null,
-  }),
-  ```
-
-  成功後に `setLocation("")` もリセット.
-- [x] フォームを3カラムグリッドに変更 (場所 / トピック / ボタン)
-
-  ```tsx
-  <div className="mt-6 grid gap-3 md:grid-cols-[1fr_1fr_auto]">
-    <input
-      value={location}
-      onChange={(e) => setLocation(e.target.value)}
-      placeholder="場所 (例: 中央食堂, 図書館3F)"
-      className={cx(...)}
-    />
-    <input
-      value={newTopic}
-      onChange={(e) => setNewTopic(e.target.value)}
-      placeholder="トピック (例: 統計学の検定手法)"
-      className={cx(...)}
-    />
-    <button ...>議論を始める</button>
-  </div>
-  ```
-
-- [x] イベントカードで `📍 {event.location}` が表示されることを確認
-- [x] 場所なし (空欄) でも投稿可能 (optional フィールド) であることを確認
-
----
-
-### ✅ Issue-02: Help — タグのDB永続化
-
-**背景 (insight.md より)**
-> 質問タグは複数つけることができるようにする. 例えば「微分方程式」「線形代数」「Python」など.
-> タグを押すと同じタグの質問を探すことができるようにする.
-
-**概要**: 質問投稿時のタグをDBに保存し, 一覧取得時に返す. Issue-17 (タグ検索) の前提.
-
-#### バックエンド — `apps/api/`
-
-- [x] `apps/api/app/models.py` の `SosRequest` に tags カラムを追加
-
-  ```python
-  tags: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
-  ```
-
-- [x] `apps/api/alembic/versions/0006_sos_tags.py` を新規作成
-
-  ```python
-  def upgrade():
-      op.add_column(
-          "sos_requests",
-          sa.Column("tags", postgresql.ARRAY(sa.String()), nullable=False, server_default="{}"),
-      )
-  def downgrade():
-      op.drop_column("sos_requests", "tags")
-  ```
-
-- [x] `apps/api/app/schemas.py` の `SosCreate` に `tags: list[str] = []` を追加
-- [x] `apps/api/app/schemas.py` の `SosOut` に `tags: list[str] = []` を追加
-- [x] `apps/api/app/routers.py` の `create_sos` で `SosRequest(... tags=body.tags)` を追加
-- [x] `apps/api/app/routers.py` の serialize 部分に `tags=req.tags` を追加
-- [x] `alembic upgrade head` を実行してマイグレーションを適用
-
-#### フロントエンド — `apps/web/components/sos-panel.tsx`
-
-- [x] `HelpItem` 型に `tags: string[]` を追加
-- [x] 各 Help カードで `item.tags` をバッジとして表示する
-- [x] タグのローカル state (`itemTags`) を廃止する (APIから取得した値を使う)
-- [x] 投稿フォームの `tags: questionTags` はそのまま (変更なし)
-- [x] Help タブで投稿 → リロード後もタグがカードに表示されることを確認
-
----
-
-### ✅ Issue-17: Help — タグによる質問フィルタリング
-
-**背景 (insight.md より)**
-> タグを押すと同じタグの質問を探すことができるようにする.
-
-**前提**: Issue-02 完了後に着手.
+**背景 (insight.md 追加 5/7 19:00 より)**
+> Help のスレッドのコメントは placeholder が「返信を入力...」になっているけど「コメントを入力」にする.
+> スレッドを開くについてだけど, 黒が今開いているもの, 青が開いていないものにしたい.
 
 **ファイル**: `apps/web/components/sos-panel.tsx`
 
-- [x] `activeTag: string | null` の state を追加
-- [x] 質問カード内のタグバッジをクリックすると `activeTag` にセットする
+- [ ] チャット入力欄の `placeholder="返信を入力..."` → `placeholder="コメントを入力"` に変更
+- [ ] スレッド開閉ボタンのスタイルを変更
+  - 開いている (activeThread): 黒背景 / 白テキスト
+  - 閉じている: 青テキスト / 透明背景
 
-  ```tsx
-  <button
-    onClick={() => setActiveTag(tag === activeTag ? null : tag)}
-    className={cx(
-      "rounded-full px-2 py-0.5 text-xs font-bold transition",
-      tag === activeTag ? "bg-orange-500 text-white" : "bg-stone-100 text-stone-600 hover:bg-stone-200"
-    )}
-  >
-    {tag}
-  </button>
-  ```
+#### 動作確認
 
-- [x] Help 一覧を `activeTag` でフィルタリング
-
-  ```tsx
-  const filtered = activeTag
-    ? sosItems.filter((item) => item.tags.includes(activeTag))
-    : sosItems;
-  ```
-
-- [x] アクティブなタグの上部に「{activeTag} でフィルター中」バナーと「× クリア」ボタンを表示
-- [x] タグをもう一度押すとフィルターが解除されることを確認
+- [ ] placeholder が「コメントを入力」になっていること
+- [ ] 開いているスレッドのボタンが黒, 閉じているものが青になっていること
 
 ---
 
-### ✅ Issue-03: Help — 投稿者による Close 機能
+### Issue-37: Help — タイムスタンプ表示
 
-**背景 (insight.md より)**
-> 解決した質問に対しては Github のように Close することができる.
+**背景 (insight.md 追加 5/7 19:00 より)**
+> Help でスレッドのコメントは timestamp も追加していつ送られたかを記録したい.
 
-#### バックエンド — `apps/api/app/routers.py`
+**ファイル**: `apps/web/components/sos-panel.tsx`
 
-- [x] `POST /sos/{request_id}/close` エンドポイントを追加
+- [ ] チャットメッセージ (`ChatMessage`) の `created_at` を各メッセージの横に表示する
+  - フォーマット: `HH:MM` (当日) または `M/D HH:MM` (別日)
 
-  ```python
-  @router.post("/sos/{request_id}/close")
-  async def close_sos(
-      request_id: str,
-      context: Context = Depends(get_context),
-      db: Session = Depends(get_db),
-  ):
-      req = db.get(SosRequest, request_id)
-      if req is None:
-          raise HTTPException(404, "SOS request not found")
-      if req.user_id != context.user.id:
-          raise HTTPException(403, "Only the author can close this request")
-      req.status = SosStatus.resolved
-      req.resolved_at = datetime.utcnow()
-      db.commit()
-      db.refresh(req)
-      return serialize_sos(req, context.user.id, db)
-  ```
+#### 動作確認
 
-- [x] `curl -X POST /api/v1/sos/{id}/close` で 200 が返ることを確認
-- [x] 他人の質問に対して 403 が返ることを確認
+- [ ] 各コメントの横に送信時刻が表示されること
 
-#### フロントエンド — `apps/web/components/sos-panel.tsx`
+---
 
-- [x] 自分の投稿にのみ「Close」ボタンを表示 (GitHub の Issue Close に近いデザイン)
-- [x] `POST /api/proxy/v1/sos/${requestId}/close` を呼ぶ
+### Issue-38: Discussion — Active のみ表示 (Ended を非表示)
 
-  ```ts
-  const res = await fetch(`/api/proxy/v1/sos/${requestId}/close`, { method: "POST" });
-  if (!res.ok) throw new Error(await res.text());
-  ```
+**背景 (insight.md 追加 5/7 19:00 より)**
+> Ended を上に表示しない. Active を表示する.
 
-- [x] Close するとカードのステータスが `resolved` に変わり, バッジが「Closed」になることを確認
+**ファイル**: `apps/web/components/discussion-board.tsx`
+
+- [ ] 議論一覧を `is_live === true` のものだけ表示するようにフィルタする
+- [ ] `is_live === false` の Ended 議論は一覧から除外する (作成ボタン付近に「X 件終了」テキストのみ表示する形でもよい)
+
+#### 動作確認
+
+- [ ] Discussion タブに Ended の議論が表示されないこと
+- [ ] Active の議論のみ一覧に出ること
+
+---
+
+### Issue-39: Discussion — Close 権限を作成者のみに制限
+
+**背景 (insight.md 追加 5/7 19:00 より)**
+> 依然として, Discussion を建てた人以外も Close できるようになっているので立てた人のみ Close できるようにする.
+
+**ファイル**: `apps/api/app/routers.py`, `apps/web/components/discussion-board.tsx`
+
+- [ ] バックエンド: `POST /v1/events/{id}/end` で `event.creator_user_id != context.user.id` の場合に 403 を返す
+- [ ] フロントエンド: `event.creator_user_id === currentUserId` の場合のみ End ボタンを表示する
+
+#### 動作確認
+
+- [ ] 自分が作成した議論にのみ End ボタンが表示されること
+- [ ] 他人の議論に End ボタンが表示されないこと
+- [ ] 他人が API 直接呼び出しで End しようとすると 403 が返ること
+
+---
+
+### Issue-40: Discussion — 1ユーザー 1アクティブ議論に制限
+
+**背景 (insight.md 追加 5/7 19:00 より)**
+> 一人が複数の議論を建てられているようになっているが一つのみにする.
+
+**ファイル**: `apps/api/app/routers.py`, `apps/web/components/discussion-board.tsx`
+
+- [ ] バックエンド: `POST /v1/events` で `is_live=true` の場合, 同ユーザーが既に `is_live=true` のイベントを作成済みなら 409 を返す
+- [ ] フロントエンド: 自分が既にアクティブな議論を持っている場合は作成ボタンを無効化 + 「既にアクティブな議論があります」を表示
+
+#### 動作確認
+
+- [ ] 1つ目の議論は作成できること
+- [ ] 2つ目を作成しようとするとブロックされること
+- [ ] 1つ目を End してから再作成できること
+
+---
+
+### Issue-41: Help — 複数スレッドを同時に展開できるようにする
+
+**背景 (insight.md 追加 5/7 19:00 より)**
+> 複数のスレッド開いたらそれぞれの Help に対してスレッドが表示されるようにする. 今は開いていたスレッドが上書きされる使用になってる.
+
+**ファイル**: `apps/web/components/sos-panel.tsx`
+
+- [ ] `activeThread: string | null` → `openThreadIds: Set<string>` に変更
+- [ ] スレッドのトグルを `openThreadIds.has(id)` で判定するよう変更
+- [ ] 複数スレッドが同時に展開されていても各スレッドのチャットが独立して表示されるよう修正
+
+#### 動作確認
+
+- [ ] 2つ以上のスレッドを同時に開けること
+- [ ] それぞれのチャット内容が独立して表示されること
+- [ ] 同じスレッドをもう一度クリックすると閉じること
 
 ---
 
 ## 優先度 2 — デモ品質向上
 
-### ✅ Issue-01: NetworkMap → My Class — 自分起点スター型強調
+### Issue-19: Syllabus — 科目詳細に履修者・紐づき質問・議論を表示 (backend 未実装)
 
-**ファイル**: `apps/web/components/network-map.tsx`
+**背景 (insight.md 追加より)**
+> Syllabus の各クラスをクリックしたらその詳細が出てきて, それを履修している人を表示させる.
+> また議論や質問も紐づいていたら表示させる.
 
-- [x] ログインユーザーのノードを半径 `r=14` で描画 (通常は `r=8`)
-- [x] 直接つながるエッジを `stroke: #1f883d, strokeWidth: 2.5` で強調
-- [x] 他のエッジは `stroke: #888, strokeWidth: 1` のまま
+**進捗**: フロントエンドの展開パネル・基本詳細 (授業内容・授業計画・単位) は実装済み.
+バックエンドの `enrolled_users` / `linked_sos` / `linked_events` フィールドが未実装.
 
----
+**ファイル**: `apps/api/app/routers.py`, `apps/api/app/services.py`, `apps/web/components/syllabus-panel.tsx`
 
-### ✅ Issue-04: Help — SOS スキルマッチで回答者をハイライト
+#### バックエンド
 
-- [x] `SosOut.matched_user_ids: list[str]` 追加
-- [x] Jaccard similarity によるマッチング
-- [x] sos-panel.tsx で強調バッジ表示
-
----
-
-### ✅ Issue-05: ポイント加算 — SOS返答・議論参加時
-
-- [x] `User.bonus_points` カラム追加, migration 0005 適用済み
-- [x] `respond_sos` で `+20`, `join_event` で `+10` ポイント付与
-
----
-
-### ✅ Issue-06: My Class — プロフィール編集パネルを追加
-
-- [x] `apps/web/components/profile-edit-panel.tsx` 新規作成
-- [x] `PATCH /api/proxy/v1/users/{id}` で interests / goals / activity_tags を更新
-
----
-
-### ✅ Issue-07: My Class — スキルツリーに過去の質問タグを自動生成
-
-**背景 (insight.md より)**
-> My Class の下部には自分のスキルツリー (自分が今まで質問してきた内容をもとに自動的に生成される)
-> を表示する. それらのスキルツリーの要素を押すと, それに関連したネットワークが表示される.
-
-**前提**: Issue-02 完了後に着手.
-
-#### バックエンド — `apps/api/`
-
-- [x] `DashboardOut` に `my_skill_tags: list[str] = []` を追加
-- [x] `GET /communities/{id}/dashboard` で自分の過去SOS質問タグを集計
-
+- [ ] `apps/api/app/schemas.py` の `CourseOut` に以下を追加
   ```python
-  my_requests = db.scalars(
-      select(SosRequest).where(SosRequest.user_id == actor_id)
-  ).all()
-  my_skill_tags = list(dict.fromkeys(tag for req in my_requests for tag in (req.tags or [])))
+  enrolled_users: list[UserProfileOut] = []
+  linked_sos: list[SosOut] = []
+  linked_events: list[EventOut] = []
   ```
+- [ ] `apps/api/app/services.py` の `get_course_detail` を拡張
+  - `enrolled_users`: `CourseDepartment.name` が `User.group_code` に含まれるユーザーを返す
+  - `linked_sos`: `SosRequest.tags` または `topic` が科目タイトル / トピックと重複するものを返す
+  - `linked_events`: `Event.title` が科目名と重複するものを返す (簡易キーワードマッチ)
 
-- [x] レスポンスに `my_skill_tags` を含めて返す
+#### フロントエンド
 
-#### フロントエンド — `apps/web/app/dashboard/page.tsx`
+- [ ] `apps/web/components/syllabus-panel.tsx` の `CourseDetail` 型に追加
+  ```ts
+  enrolled_users: Array<{ id: string; name: string; group_label: string }>;
+  linked_sos: Array<{ id: string; topic: string; tags: string[]; status: string }>;
+  linked_events: Array<{ id: string; title: string; participant_names: string[] }>;
+  ```
+- [ ] 展開パネルに以下を追加表示
+  - 履修者: 名前バッジ一覧
+  - 紐づき質問カード (トピック + タグ + status バッジ)
+  - 紐づき議論カード (タイトル + 参加者数)
+- [ ] データなしの場合は「まだ質問・議論はありません」を表示
 
-- [x] `DashboardData` 型に `my_skill_tags?: string[]` を追加
-- [x] `<MyClassPanel>` の `skillTags` を `dashboard.my_skill_tags ?? me.user.activity_tags` に変更
+#### 動作確認
 
-#### フロントエンド — My Class のスキルツリー
-
-- [x] スキルタグをクリックすると NetworkMap をそのタグでフィルタリングする
-  - `selectedTag: string | null` を state に持つ
-  - My Class 側で NetworkMap に渡す nodes / edges をタグで絞り込む
-  - タグが指定されると, そのタグを持つユーザーに繋がるエッジのみ表示
-
----
-
-### ✅ Issue-08: Discussion — 重複参加ガード
-
-- [x] `join_event / create_event` に 409 ガード追加済み
-- [x] フロントで `alreadyInTopic` フラグによるボタン無効化
-
----
-
-### ✅ Issue-09: Home タブ — Discussion カードを追加・タブカウンター修正
-
-- [x] `tabCounts` を `dashboard.events.filter((e) => e.is_live).length` に修正
-- [x] Home ビューに「Sync Live」カードを追加
+- [ ] 展開パネルに履修者リストが表示されること
+- [ ] 展開パネルに紐づき質問・議論が表示されること
+- [ ] 紐づきデータがない科目で空状態メッセージが出ること
 
 ---
 
-### ✅ Issue-10: Help — チャット解決後に知見エッジ追加ボタンを表示
+### Issue-42: キャンパス明示フィルタリング
 
-- [x] `resolved` 状態のチャットに「🔗 知見エッジを追加する」ボタン表示
-- [x] `POST /api/proxy/v1/relationships` でエッジ追加
+**背景 (insight.md 追加 5/7 19:00 より)**
+> キャンパスによって質問や議論がフィルタされていると思うけどそれを暗黙的にやらないようにする.
+> プロフィール編集の中にキャンパス情報を一つ選択して入れられるようにする.
+> またそれによって Discussion や Help も明示的にフィルタできるようにする.
+
+**ファイル**: `apps/web/components/sos-panel.tsx`, `apps/web/components/discussion-board.tsx`, `apps/web/components/profile-edit-panel.tsx`, `apps/web/app/dashboard/page.tsx`
+
+- [ ] `SosPanel` にコミュニティ (キャンパス) セレクターを追加し, 選択したコミュニティの質問のみ表示する
+- [ ] `DiscussionBoard` に同様のコミュニティフィルターを追加
+- [ ] `ProfileEditPanel` にキャンパス選択 (所属コミュニティ切り替え) UIを追加
+- [ ] `me.communities` を使って参加済みコミュニティ一覧をセレクターに表示
+
+#### 動作確認
+
+- [ ] キャンパスを切り替えると Help/Discussion の表示が切り替わること
+- [ ] 「全キャンパス」表示オプションがあること
+
+---
+
+### Issue-43: Discussion — 予定 Discussion 機能
+
+**背景 (insight.md 追加 5/7 19:00 より)**
+> 何時間後に Discussion 行いますっていう予定も建てられるようにしたい.
+> また毎週月曜日の 20:00 からとかも設定できるようにしたい.
+> そしてその予定も表示させるようにする.
+
+**設計メモ** (実装コスト大)
+
+- [ ] `Event` モデルに `scheduled_at: datetime | null` と `recurrence: str | null` (例: `"weekly:MON:20:00"`) カラムを追加 (新規 migration)
+- [ ] `EventUpsert` スキーマに `scheduled_at` と `recurrence` を追加
+- [ ] `DiscussionBoard` の作成フォームに日時入力と繰り返し設定 UI を追加
+- [ ] 予定済み議論を「予定一覧」セクションとして別表示する
+
+#### 動作確認
+
+- [ ] 将来の日時を指定して議論を予定できること
+- [ ] 予定一覧に表示されること
+- [ ] 当日時刻になると自動的に Active 扱いになること (or 手動開始ボタン)
 
 ---
 
@@ -309,186 +230,20 @@ PDFスライド17「議論ボード」では「📍 中央食堂で統計学の�
 
 **設計メモ** (実装コスト高めのため後回し)
 
-- フロント: `<input type="file" accept="image/*">` で画像を選択
-- バックエンド: multipart/form-data で受け取り, base64 or object storage に保存
-- `SosRequest` モデルに `image_url: str | null` カラムを追加 (migration 0007)
-- チャットメッセージにも画像添付を拡張 (optional)
+- [ ] フロント: `<input type="file" accept="image/*">` で画像を選択
+- [ ] バックエンド: multipart/form-data で受け取り, base64 or object storage に保存
+- [ ] `SosRequest` モデルに `image_url: str | null` カラムを追加 (migration 0007)
+- [ ] チャットメッセージにも画像添付を拡張 (optional)
 
-**受け入れ条件**
+#### 動作確認
 
-- Help の投稿フォームに画像添付ボタンがある
-- 投稿されたカードに添付画像のサムネイルが表示される
-
----
-
-### Issue-19: Syllabus — 科目詳細ページ (履修者・紐づき質問・議論を表示)
-
-**背景 (insight.md 追加より)**
-> Syllabus の各クラスをクリックしたらその詳細が出てきて, それを履修している人を表示させる.
-> また議論や質問も紐づいていたら表示させる.
-
-**ファイル**: `apps/web/app/dashboard/page.tsx`, `apps/api/app/routers.py`, `apps/api/app/services.py`
-
-#### バックエンド
-
-- [ ] `GET /v1/courses/{id}` のレスポンスに以下を追加
-  - `enrolled_users: UserProfileOut[]` — この科目を履修しているユーザー一覧
-  - `linked_sos: SosOut[]` — タイトル/タグがこの科目に関連するSOS質問
-  - `linked_events: EventOut[]` — タイトルがこの科目に関連するDiscussionイベント
-- [ ] `apps/api/app/services.py` の `get_course_detail` でそれぞれを集計して返す
-
-#### フロントエンド
-
-- [ ] Syllabus 一覧で科目カードをクリックすると詳細パネルが開く (展開 or スライドアウト)
-- [ ] 詳細パネルに以下を表示
-  - 科目名・担当教員・学部
-  - 履修ユーザーのアバター一覧
-  - 紐づき質問カード (Help と同じスタイル)
-  - 紐づき議論カード (Discussion と同じスタイル)
-- [ ] 紐づき質問・議論がない場合は「まだ質問・議論はありません」を表示
-
----
-
-### Issue-20: Migration — デモ用シードデータ増強
-
-**背景 (insight.md 追加より)**
-> もっと migration ファイルを増やす. 今だと人が少なすぎる. もっと人を増やして, 質問も増やして,
-> 議論も増やしとく.
-
-**ファイル**: `data/demo-data.json`
-
-- [ ] `campus-east` のユーザーを現在の8名 → 15名以上に増やす
-- [ ] `campus-west` のユーザーを現在の6名 → 12名以上に増やす
-- [ ] 各ユーザーの interests / goals / activity_tags を充実させる (スキルマッチのデモ映え)
-- [ ] 各コミュニティに Active の質問を 10件以上追加 (タグ付き, 2〜3個/件)
-- [ ] Resolved の質問を 5件以上追加 (チャット履歴あり)
-- [ ] `is_live=true` のイベントを各コミュニティに 3件以上追加
-  - location は「中央食堂」「図書館3F」「ラウンジ」など具体的に記述
-  - 参加者を 2〜4 名にする
-- [ ] `docker compose up --build` でシードが正常に適用されることを確認
-
----
-
-### Issue-21: Syllabus — 謎のアイコンを修正 (bug)
-
-**背景 (insight.md 追加より)**
-> Syllabus の謎のアイコンをどうにかする.
-
-**ファイル**: `apps/web/app/dashboard/page.tsx` (Syllabus セクション) または関連コンポーネント
-
-- [ ] Syllabus ビューを確認し, 不要・意図不明なアイコンを特定する
-- [ ] 削除, または適切なアイコンに置き換える
-- [ ] Syllabus ビューが正常に表示されることを確認
-
----
-
-### Issue-22: My Class — スキルツリーを最初に表示, ノードクリックでクラスメイトを表示
-
-**背景 (insight.md 追加より)**
-> My Class はスキルツリーを最初に表示させて, そのツリーのノードを押したらクラスメイト
-> (他の人との繋がり) が表示されるようにする.
-
-**関連**: Issue-07 (スキルツリー自動生成) が前提.
-
-**ファイル**: `apps/web/components/my-class-panel.tsx`, `apps/web/components/skill-tree.tsx`, `apps/web/components/network-map.tsx`
-
-- [ ] My Class パネルのレイアウトを変更
-  - Before: ネットワークグラフ (上) + スキルツリー (下)
-  - After: スキルツリー (上, メイン) + クラスメイト一覧 (下, タグクリック時に展開)
-- [ ] スキルツリーのタグノードをクリックすると, そのタグを持つクラスメイトの一覧を表示する
-  - アバター + 名前 + 共通タグ のカード形式
-- [ ] タグが未選択の状態では全クラスメイトを表示
-
----
-
-### Issue-23: ユーザープロフィール閲覧機能
-
-**背景 (insight.md 追加より)**
-> 人のプロフィール見れるようにする.
-
-**ファイル**: `apps/web/app/dashboard/page.tsx` またはモーダルコンポーネント (新規)
-
-#### バックエンド
-
-- [ ] `GET /v1/users/{user_id}` エンドポイントを確認 (なければ追加)
-  - 返すフィールド: name, role_label, interests, goals, activity_tags, points, bio
-  - 同一コミュニティのユーザーのみ閲覧可 (403 otherwise)
-
-#### フロントエンド
-
-- [ ] NetworkMap / My Class / Help のユーザー名・アバターをクリックするとプロフィールモーダルが開く
-- [ ] 表示内容: 名前・ロール, interests / goals / activity_tags バッジ, ポイント, 共通タグ数
-- [ ] 自分自身の場合は「編集」ボタンを表示 → profile-edit-panel を開く
-
----
-
-### Issue-24: バグ — 検索欄で検索後に文字が残る
-
-**背景 (insight.md 追加より)**
-> 検索欄で検索したらそのまま文字が残っているバグを直す.
-
-**ファイル**: 検索 state を持つコンポーネント (Syllabus / Help など)
-
-- [ ] ビュー切り替え時に検索 state がリセットされるよう修正する
-- [ ] または URL search params で管理し, クリアボタンを設ける
-- [ ] 修正後, 別タブに移動して戻っても検索欄が空であることを確認
-
----
-
-### Issue-25: Light/Dark モード切り替えを削除
-
-**背景 (insight.md 追加より)**
-> Light, Dark モードの切り替え機能をいらないと思う.
-
-**ファイル**:
-- `apps/web/app/dashboard/page.tsx`
-- `apps/web/components/discussion-board.tsx`
-- `apps/web/components/sos-panel.tsx`
-- `apps/web/components/network-map.tsx`
-- その他 `theme` props を受け取るコンポーネント
-
-- [ ] テーマ切り替えボタン / トグルを削除する
-- [ ] `theme` search param の読み込みを削除する (`?theme=dark` などのURL対応も不要)
-- [ ] Light テーマか Dark テーマのどちらか一方に統一し, もう一方のスタイル定義を削除する
-- [ ] 各コンポーネントの `theme?: "light" | "dark"` props を削除し, ハードコードに変更する
-- [ ] 削除後に全タブが正常に表示されることを確認
-
----
-
-### Issue-26: ヘッダーアイコンをクリックしてプロフィールページへ遷移・編集
-
-**背景 (insight.md 追加より)**
-> 自分の名前が表示されているアイコンを押すとプロフィールに飛ぶようにして,
-> そこからプロフィールを編集できるようにする.
-
-**関連**: Issue-23 (プロフィール閲覧) が前提.
-
-**ファイル**: `apps/web/app/dashboard/page.tsx` (ヘッダー部分)
-
-- [ ] ダッシュボードヘッダーの自分の名前/アバターをクリック可能にする
-- [ ] クリックすると自分のプロフィールモーダルが開く
-- [ ] プロフィール画面に「編集」ボタンを置き, profile-edit-panel を呼び出す
-- [ ] 現在の overview に独立して置かれている ProfileEditPanel をプロフィール画面に移動する
-- [ ] 編集保存後にプロフィール画面の表示が即時反映されることを確認
+- [ ] Help の投稿フォームに画像添付ボタンがあること
+- [ ] 投稿されたカードに添付画像のサムネイルが表示されること
+- [ ] 非画像ファイルを添付しようとするとバリデーションエラーになること
 
 ---
 
 ## 優先度 3 — 将来実装 (デモ後)
-
-### ✅ Issue-12: WebSocket 移行 (議論ボード)
-
-- [x] `/v1/ws/events/{community_id}` WebSocket エンドポイント
-- [x] create / join / end で `events_manager.broadcast` 呼び出し
-- [x] refetchInterval 8秒, refetchOnMount / refetchOnWindowFocus 有効化
-
----
-
-### ✅ Issue-13: AI 自動ルーティング (SOS → 最適回答者の自動通知)
-
-- [x] Claude Haiku によるトピック分析
-- [x] WebSocket で対象ユーザーへリアルタイム通知
-
----
 
 ### Issue-14: GPS 距離マッチング (PDFスライド20「SHORT v2」)
 
@@ -520,52 +275,235 @@ PDFスライド9「接続コストを最小化する設計」で示されるフ�
 - デモ推奨アカウント: `tanaka.sensei` + `yuki` + `haruto` (全員 `campus-east`)
 - `saki` / `suzuki.sensei` は `campus-west` のため Discussion イベントは共有されない (仕様)
 - Discussion ボードはコミュニティ単位でリアルタイム同期 (WebSocket)
+- **コード変更後はコンテナの再ビルドが必要**: `docker compose up --build`
 
 ---
 
 ## 実装順序の推奨
 
 ```
-[完了] Issue-01, 04, 05, 06, 08, 09, 10, 12, 13
+【クイック修正バッチ — 合計 1〜2h】
+Issue-35  Help 自動メッセージ削除          (15分)
+Issue-36  Help placeholder / スレッド色    (15分)
+Issue-37  Help タイムスタンプ              (15分)
+Issue-38  Discussion Active のみ表示       (15分)
+Issue-39  Discussion Close 権限制限        (30分)
+Issue-40  Discussion 複数議論制限          (30分)
      ↓
-Issue-16 (30分)  Home コピー修正・GPS文言削除
-Issue-11 (30分)  Discussion 場所フィールド復元
-Issue-25 (1h)   Light/Dark モード削除 → UI統一
-Issue-21 (15分)  Syllabus アイコン修正
-Issue-24 (30分)  検索欄バグ修正
+【中規模】
+Issue-41  Help 複数スレッド同時展開        (1h)
+Issue-19  Syllabus 詳細 backend 拡張       (2h)
      ↓
-Issue-20 (2h)   シードデータ増強 (人・質問・議論)
+【大規模】
+Issue-42  キャンパスフィルタリング         (2-3h)
+Issue-43  予定 Discussion                  (3h+)
+Issue-18  Help 画像添付                    (工数大)
      ↓
-Issue-02 (1h)   Help タグDB → Issue-17 (1h) タグ検索 → Issue-03 (30分) Close
-     ↓
-Issue-07 (1h)   スキルツリー自動生成    ← Issue-02 依存
-Issue-22 (1h)   My Class レイアウト変更 ← Issue-07 依存
-     ↓
-Issue-23 (1h)   プロフィール閲覧 → Issue-26 (30分) ヘッダーアイコン連携
-Issue-19 (2h)   Syllabus 詳細ページ
-     ↓
-Issue-18 (工数大) 画像添付 → Issue-14, 15 (デモ後)
+Issue-14, 15  GPS / 大学間連携             (デモ後)
 ```
 
 ---
 
-## 完了済みタスク (参考)
+## 完了済みタスク
+
+### Issue-29: ヘッダーの検索欄を削除 ✅
+
+- `apps/web/app/dashboard/page.tsx` のヘッダー `<form action="/dashboard">` 検索フォームを削除
+- Syllabus タブ内のサイドバー検索フォームは引き続き動作
+
+### Issue-33: My Class — スキルツリーの初期値を interests + 質問タグに変更 ✅
+
+- `skillTags={[...new Set([...me.user.interests, ...(dashboard.my_skill_tags ?? [])])]}` に変更
+- interests を先頭に置き, SOS 質問タグを後続追加, 重複は Set で排除
+
+### Issue-31: Syllabus 検索 — 全件表示 & ページネーション ✅
+
+- バックエンド: `schemas.py` に `CourseListPage(items, total)` を追加
+- バックエンド: `services.py` の `list_courses` に `offset` パラメータ追加, `select(func.count())` で総件数取得
+- バックエンド: `GET /v1/courses` を `CourseListPage` レスポンスに変更 (デフォルト 20件/ページ)
+- フロントエンド: `loadDashboard` に `?page=` URL param を追加
+- フロントエンド: `SyllabusPanel` に `currentPage / totalItems / pageSize / prevPageHref / nextPageHref` props を追加
+- フロントエンド: 前ページ / 次ページ ボタン + 「X / Y ページ (N件)」表示を追加
+
+### Issue-32: プロフィール編集を専用ページに変更 ✅
+
+- `apps/web/app/profile/page.tsx` を新規作成 (`/v1/me` fetch → `ProfileEditPanel` フルページ表示)
+- `apps/web/components/header-profile.tsx` を `<a href="/profile">` シンプルリンクに変更 (overlay 削除)
+- `/profile` ページに「← ダッシュボードに戻る」ナビゲーション設置
+
+### Issue-27: Help — Close 権限バグ修正 ✅
+
+- バックエンド: `req.user_id != context.user.id` の場合に 403 を返すガードを実装
+- フロントエンド: `item.user_id === currentUserId` の場合のみ Close ボタンを表示
+
+### Issue-25: Light/Dark モード切り替えを削除 ✅
+
+- `ThemeName` 型, `normalizeTheme`, `isDark`, `colors` オブジェクトを全て削除
+- テーマ切り替えボタンをヘッダーから削除
+- 全コンポーネント (`sos-panel`, `discussion-board`, `my-class-panel`, `skill-tree`, `profile-edit-panel`) の `theme` props を削除し Light スタイルにハードコード
+- `page.tsx` からも `theme` URL param / form hidden input を削除
+
+### Issue-21: Syllabus — 謎のアイコンを修正 ✅
+
+- `CourseIllustration` SVG のオレンジ色 + 円アイコンを削除
+- タブナビゲーションのビジュアルアイコン (`#`, `?`, `@` など) を削除してすっきりさせた
+
+### Issue-24: バグ — 検索欄で検索後に文字が残る ✅
+
+- `href` ヘルパーで `targetView !== "syllabus"` の場合に `q: undefined` を渡すよう修正
+- Syllabus 以外のタブに移動すると URL から `?q=` が消えるため再表示時に空になる
+
+### Issue-28: Help — 複数タグフィルター (toggle on/off) ✅
+
+- `activeTag: string | null` → `activeTags: Set<string>` に変更
+- `toggleTag(tag)` 関数で Set への追加 / 削除を実装
+- フィルタリングロジックを OR 条件に変更
+- アクティブなタグバッジを強調表示, 「× クリア」ボタンで全解除
+
+### Issue-20: Migration — デモ用シードデータ増強 ✅
+
+- `campus-east` ユーザーを 7名 → 20名に拡張 (情報・数学・物理の各学年)
+- `campus-west` ユーザーを 6名 → 15名に拡張 (デザイン・社会・経済・心理等)
+- SOS 質問を 102件追加 (active 88 / resolved 14, タグ付き 2〜3個/件)
+- Discussion イベントを 20件追加 (ライブ 16件, location / creatorUserId 付き)
+- `apps/api/app/scripts/seed.py` に `SosRequest`, `SosResponse` シーディングを追加
+- `Event` の `is_live`, `location`, `creator_user_id` もシードに反映
+
+### Issue-22: My Class — スキルツリーをメイン表示, ネットワーク削除 ✅
+
+- `NetworkMap` (D3.js) を `MyClassPanel` から完全削除
+- `SkillTree` をメイン上部に配置
+- スキルツリーのタグクリックでそのタグを持つクラスメイトを下部に一覧表示
+- タグ未選択時は全クラスメイトを表示
+
+### Issue-23: ユーザープロフィール閲覧機能 ✅
+
+- `my-class-panel.tsx` にインライン `ProfileModal` コンポーネントを実装
+- 表示内容: 名前, groupLabel, bio, interests / goals / activityTags バッジ, 接続数, 自分バッジ
+- クラスメイトカードクリックでモーダルを開く
+- 「My Profile」カードから自分のプロフィールも閲覧可能
+- `Node` 型に `bio?`, `interests?`, `goals?`, `activityTags?` を追加
+- `page.tsx` で nodes に bio / interests / goals / activityTags を渡すよう修正
+
+### Issue-26: ヘッダーアイコンをクリックしてプロフィール編集 ✅
+
+- `apps/web/components/header-profile.tsx` を新規作成
+- ヘッダーの名前/ロールをクリックすると `ProfileEditPanel` がスライドパネルで開く
+- バックドロップクリックで閉じる
+- → Issue-32 で専用ページに昇格
+
+### Issue-19: Syllabus — 科目詳細パネル (基本情報) ✅ / backend 拡張は継続
+
+- `apps/web/components/syllabus-panel.tsx` を新規作成
+- 科目カードクリックで詳細を展開表示 (`GET /api/proxy/v1/courses/{id}` をクライアントサイドで fetch)
+- 表示内容: 授業内容 (contents), 授業計画 (lecture_plan リスト), 単位・対象年次
+- 履修者・紐づき質問・議論の表示は backend 未実装として継続
+
+---
+
+### Issue-16: Home — Overview 再設計 ✅
+
+- ホーム見出し・サブコピーを「SOS/GPS」表現から学習コミュニティの入口に書き換え
+- GPS/物理距離に言及するコピーを全て削除
+- Help / Discussion / My Class / Syllabus の 4 枚サマリーカードに整理
+- 各カードクリックで対応ビューに遷移
+
+### Issue-11: Discussion — 場所フィールドを復元 ✅
+
+- `location` state を復元
+- フォームを 3 カラムグリッド (場所 / トピック / ボタン) に変更
+- イベントカードで `📍 {event.location}` を表示
+
+### Issue-02: Help — タグの DB 永続化 ✅
+
+- `SosRequest` に `tags: Mapped[list[str]]` カラム追加, migration 0006 適用
+- `SosCreate` / `SosOut` に `tags: list[str]` 追加
+- フロントで tags をバッジ表示
+
+### Issue-17: Help — タグによる質問フィルタリング (単一タグ) ✅
+
+- `activeTag` state を追加, タグバッジクリックでフィルタ
+- フィルター中バナーと「× クリア」ボタンを表示
+- ※ 複数タグ対応は Issue-28 で完了
+
+### Issue-03: Help — 投稿者による Close 機能 ✅
+
+- `POST /sos/{request_id}/close` エンドポイント追加 (投稿者以外は 403)
+- フロントで自分の投稿にのみ Close ボタンを表示
+- Close 後にバッジが「Closed」に変わる
+
+### Issue-01: NetworkMap → My Class — 自分起点スター型強調 ✅
+
+- ログインユーザーのノードを半径 `r=14` で描画
+- 直接つながるエッジを `stroke: #1f883d, strokeWidth: 2.5` で強調
+
+### Issue-04: Help — SOS スキルマッチで回答者をハイライト ✅
+
+- `SosOut.matched_user_ids: list[str]` 追加
+- Jaccard similarity によるマッチング
+- sos-panel.tsx で強調バッジ表示
+
+### Issue-05: ポイント加算 — SOS 返答・議論参加時 ✅
+
+- `User.bonus_points` カラム追加, migration 0005 適用
+- `respond_sos` で +20, `join_event` で +10 ポイント付与
+
+### Issue-06: My Class — プロフィール編集パネルを追加 ✅
+
+- `apps/web/components/profile-edit-panel.tsx` 新規作成
+- `PATCH /api/proxy/v1/users/{id}` で interests / goals / activity_tags を更新
+
+### Issue-07: My Class — スキルツリーに過去の質問タグを自動生成 ✅
+
+- `DashboardOut` に `my_skill_tags: list[str]` を追加
+- `GET /communities/{id}/dashboard` で自分の過去 SOS 質問タグを集計して返す
+- `<MyClassPanel>` の `skillTags` を `dashboard.my_skill_tags` に変更
+
+### Issue-08: Discussion — 重複参加ガード ✅
+
+- `join_event / create_event` に 409 ガード追加
+- フロントで `alreadyInTopic` フラグによるボタン無効化
+
+### Issue-09: Home タブ — Discussion カードを追加・タブカウンター修正 ✅
+
+- `tabCounts` を `dashboard.events.filter((e) => e.is_live).length` に修正
+- Home ビューに「Sync Live」カードを追加
+
+### Issue-10: Help — チャット解決後に知見エッジ追加ボタンを表示 ✅
+
+- `resolved` 状態のチャットに「🔗 知見エッジを追加する」ボタン表示
+- `POST /api/proxy/v1/relationships` でエッジ追加
+
+### Issue-12: WebSocket 移行 (議論ボード) ✅
+
+- `/v1/ws/events/{community_id}` WebSocket エンドポイント
+- create / join / end で `events_manager.broadcast` 呼び出し
+- refetchInterval 8 秒, refetchOnMount / refetchOnWindowFocus 有効化
+
+### Issue-13: AI 自動ルーティング (SOS → 最適回答者の自動通知) ✅
+
+- Claude Haiku によるトピック分析
+- WebSocket で対象ユーザーへリアルタイム通知
+
+---
+
+その他の完了済み基盤機能:
 
 - ✅ 認証機能 (NextAuth + FastAPI JWT)
 - ✅ ナレッジグラフ可視化 (D3.js force-directed, スター型強調)
 - ✅ SOS 投稿・返答・チャット
 - ✅ SOS → 対面議論昇格ボタン
 - ✅ SOS スキルマッチ (Jaccard similarity + ハイライト)
-- ✅ ライブ議論ボード (WebSocket リアルタイム + 8秒ポーリング)
+- ✅ ライブ議論ボード (WebSocket リアルタイム + 8 秒ポーリング)
 - ✅ 議論ボード重複参加ガード (create / join 両方)
 - ✅ 知見エッジ追加ボタン (SOS resolved 後)
 - ✅ プロフィール編集パネル (interests / goals / activity_tags)
 - ✅ ボーナスポイント (SOS返答 +20, 議論参加 +10)
-- ✅ AI自動ルーティング (Claude Haiku, ANTHROPIC_API_KEY 任意)
+- ✅ AI 自動ルーティング (Claude Haiku, ANTHROPIC_API_KEY 任意)
 - ✅ NetworkMap スター型強調 (自分ノード大, 直接エッジ緑)
-- ✅ シラバス検索 (1808科目)
+- ✅ シラバス検索 (1808 科目, ページネーション付き)
 - ✅ レコメンデーション (bridge / complementary / similar)
 - ✅ ゲーミフィケーション (ポイント計算・バッジ・ランキング)
-- ✅ Alembic マイグレーション (0001〜0005)
+- ✅ Alembic マイグレーション (0001〜0006)
 - ✅ BFF パターン (Next.js → FastAPI プロキシ)
 - ✅ ページ構成刷新 (Home / Help / Discussion / My Class / Syllabus)

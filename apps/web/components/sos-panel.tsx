@@ -40,8 +40,6 @@ type HelpChat = {
   messages: ChatMessage[];
 };
 
-type HelpTheme = "light" | "dark";
-
 function cx(...parts: Array<string | false | undefined>) {
   return parts.filter(Boolean).join(" ");
 }
@@ -66,18 +64,16 @@ export function SosPanel({
   communityId,
   initialItems,
   currentUserId,
-  theme = "light",
 }: {
   communityId: string;
   initialItems: HelpItem[];
   currentUserId: string;
-  theme?: HelpTheme;
 }) {
   const queryClient = useQueryClient();
   const [topic, setTopic] = useState("");
   const [tagInput, setTagInput] = useState("");
   const [questionTags, setQuestionTags] = useState<string[]>([]);
-  const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [activeTags, setActiveTags] = useState<Set<string>>(new Set());
   const [message, setMessage] = useState("");
   const [addedEdges, setAddedEdges] = useState<Set<string>>(new Set());
   const [aiNotification, setAiNotification] = useState<{
@@ -180,9 +176,7 @@ export function SosPanel({
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
-      if (!response.ok) {
-        throw new Error(await response.text());
-      }
+      if (!response.ok) throw new Error(await response.text());
       return response.json() as Promise<HelpItem>;
     },
     onSuccess: async () => {
@@ -238,38 +232,24 @@ export function SosPanel({
   });
 
   const openCount = helpQuery.data.filter((item) => item.status === "active").length;
-  const isDark = theme === "dark";
-
   const allTags = [...new Set(helpQuery.data.flatMap((item) => item.tags))];
-  const filteredItems = activeTag
-    ? helpQuery.data.filter((item) => item.tags.includes(activeTag))
-    : helpQuery.data;
 
-  const ui = {
-    panel: isDark
-      ? "border-[#30363d] bg-[#161b22] text-slate-100 shadow-black/20"
-      : "border-[#d8dee4] bg-white text-[#24292f] shadow-slate-200/70",
-    eyebrow: isDark ? "text-[#79c0ff]" : "text-[#0969da]",
-    muted: isDark ? "text-slate-400" : "text-[#57606a]",
-    text: isDark ? "text-slate-100" : "text-[#24292f]",
-    metric: isDark ? "bg-[#0d1117] text-[#79c0ff]" : "bg-[#ddf4ff] text-[#0969da]",
-    input: isDark
-      ? "border-[#30363d] bg-[#0d1117] text-slate-100 placeholder:text-slate-600 focus:border-[#58a6ff]"
-      : "border-[#d0d7de] bg-white text-[#24292f] placeholder:text-[#57606a] focus:border-[#0969da]",
-    card: isDark
-      ? "border-[#30363d] bg-[#0d1117] text-slate-100"
-      : "border-[#d8dee4] bg-white text-[#24292f]",
-    closed: isDark ? "bg-[#30363d] text-slate-400" : "bg-[#eaeef2] text-[#57606a]",
-    open: isDark ? "bg-[#132d1d] text-[#7ee787]" : "bg-[#dafbe1] text-[#116329]",
-    mine: isDark ? "bg-[#132d1d] text-[#dfffe6]" : "bg-[#dafbe1] text-[#116329]",
-    theirs: isDark ? "bg-[#0d1117] text-slate-100" : "bg-white text-[#24292f]",
-    tag: isDark
-      ? "border-[#30363d] bg-[#0d1117] text-slate-300"
-      : "border-[#d0d7de] bg-[#f6f8fa] text-[#24292f]",
-    tagActive: isDark
-      ? "border-[#1f6feb] bg-[#1f6feb]/20 text-[#79c0ff]"
-      : "border-[#0969da] bg-[#ddf4ff] text-[#0969da]",
-  };
+  const filteredItems =
+    activeTags.size > 0
+      ? helpQuery.data.filter((item) => item.tags.some((t) => activeTags.has(t)))
+      : helpQuery.data;
+
+  function toggleTag(tag: string) {
+    setActiveTags((prev) => {
+      const next = new Set(prev);
+      if (next.has(tag)) {
+        next.delete(tag);
+      } else {
+        next.add(tag);
+      }
+      return next;
+    });
+  }
 
   function addTag(tag: string) {
     const t = tag.trim();
@@ -281,16 +261,9 @@ export function SosPanel({
   }
 
   return (
-    <section className={cx("rounded-xl border p-6 shadow-xl", ui.panel)}>
+    <section className="rounded-xl border border-[#d8dee4] bg-white p-6 shadow-xl text-[#24292f]">
       {aiNotification ? (
-        <div
-          className={cx(
-            "mb-4 rounded-xl border px-4 py-3",
-            isDark
-              ? "border-[#1f6feb] bg-[#0d1f38] text-[#79c0ff]"
-              : "border-[#0969da] bg-[#ddf4ff] text-[#0550ae]",
-          )}
-        >
+        <div className="mb-4 rounded-xl border border-[#0969da] bg-[#ddf4ff] px-4 py-3 text-[#0550ae]">
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.2em] opacity-70">AI マッチ通知</p>
@@ -301,13 +274,7 @@ export function SosPanel({
               {aiNotification.aiTags.length > 0 ? (
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {aiNotification.aiTags.map((tag) => (
-                    <span
-                      key={tag}
-                      className={cx(
-                        "rounded-full px-2.5 py-0.5 text-xs font-semibold",
-                        isDark ? "bg-[#1f6feb]/30" : "bg-[#0969da]/10",
-                      )}
-                    >
+                    <span key={tag} className="rounded-full bg-[#0969da]/10 px-2.5 py-0.5 text-xs font-semibold">
                       {tag}
                     </span>
                   ))}
@@ -327,42 +294,44 @@ export function SosPanel({
 
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className={cx("text-xs font-bold uppercase tracking-[0.22em]", ui.eyebrow)}>Help</p>
-          <h2 className={cx("mt-2 text-2xl font-black tracking-[-0.04em]", ui.text)}>
+          <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#0969da]">Help</p>
+          <h2 className="mt-2 text-2xl font-black tracking-[-0.04em] text-[#24292f]">
             質問 & ヘルプ
           </h2>
-          <p className={cx("mt-2 text-sm leading-6", ui.muted)}>
+          <p className="mt-2 text-sm leading-6 text-[#57606a]">
             困ったことを投稿して, 仲間に質問・議論できます. タグをつけると同じテーマの質問をまとめて探せます.
           </p>
         </div>
-        <div className={cx("rounded-xl px-4 py-3 text-right shadow-sm", ui.metric)}>
-          <p className={cx("text-xs font-bold uppercase tracking-[0.18em]", ui.muted)}>Open</p>
-          <p className="mt-1 text-4xl font-black tracking-[-0.05em]">{openCount}</p>
+        <div className="rounded-xl bg-[#ddf4ff] px-4 py-3 text-right shadow-sm">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#57606a]">Open</p>
+          <p className="mt-1 text-4xl font-black tracking-[-0.05em] text-[#0969da]">{openCount}</p>
         </div>
       </div>
 
-      {/* Tag filter */}
+      {/* Multi-tag filter */}
       {allTags.length > 0 ? (
         <div className="mt-4 flex flex-wrap gap-2">
-          <span className={cx("text-xs font-semibold self-center", ui.muted)}>フィルタ:</span>
+          <span className="self-center text-xs font-semibold text-[#57606a]">フィルタ:</span>
           {allTags.map((tag) => (
             <button
               key={tag}
               type="button"
-              onClick={() => setActiveTag(activeTag === tag ? null : tag)}
+              onClick={() => toggleTag(tag)}
               className={cx(
                 "rounded-full border px-3 py-1 text-xs font-semibold transition",
-                activeTag === tag ? ui.tagActive : ui.tag,
+                activeTags.has(tag)
+                  ? "border-[#0969da] bg-[#ddf4ff] text-[#0969da]"
+                  : "border-[#d0d7de] bg-[#f6f8fa] text-[#24292f]",
               )}
             >
               {tag}
             </button>
           ))}
-          {activeTag ? (
+          {activeTags.size > 0 ? (
             <button
               type="button"
-              onClick={() => setActiveTag(null)}
-              className={cx("text-xs underline", ui.muted)}
+              onClick={() => setActiveTags(new Set())}
+              className="text-xs underline text-[#57606a]"
             >
               解除
             </button>
@@ -370,17 +339,10 @@ export function SosPanel({
         </div>
       ) : null}
 
-      {activeTag ? (
-        <div
-          className={cx(
-            "mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3 text-sm font-bold",
-            isDark
-              ? "border-[#1f6feb] bg-[#0d1f38] text-[#79c0ff]"
-              : "border-[#0969da] bg-[#ddf4ff] text-[#0550ae]",
-          )}
-        >
-          <span>{activeTag} でフィルター中</span>
-          <button type="button" onClick={() => setActiveTag(null)} className="text-xs underline">
+      {activeTags.size > 0 ? (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#0969da] bg-[#ddf4ff] px-4 py-3 text-sm font-bold text-[#0550ae]">
+          <span>[{[...activeTags].join(", ")}] でフィルター中</span>
+          <button type="button" onClick={() => setActiveTags(new Set())} className="text-xs underline">
             × クリア
           </button>
         </div>
@@ -392,18 +354,14 @@ export function SosPanel({
           value={topic}
           onChange={(e) => setTopic(e.target.value)}
           placeholder="例: 線形代数の固有値の証明で詰まっています"
-          className={cx("w-full rounded-xl border px-4 py-3 text-sm outline-none transition", ui.input)}
+          className="w-full rounded-xl border border-[#d0d7de] bg-white px-4 py-3 text-sm text-[#24292f] outline-none transition placeholder:text-[#57606a] focus:border-[#0969da]"
         />
 
-        {/* Tags input */}
         <div className="flex flex-wrap items-center gap-2">
           {questionTags.map((tag) => (
             <span
               key={tag}
-              className={cx(
-                "flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold",
-                ui.tagActive,
-              )}
+              className="flex items-center gap-1.5 rounded-full border border-[#0969da] bg-[#ddf4ff] px-3 py-1 text-xs font-semibold text-[#0969da]"
             >
               {tag}
               <button
@@ -426,16 +384,13 @@ export function SosPanel({
               }
             }}
             placeholder="タグを追加 (Enter で確定)"
-            className={cx(
-              "min-w-[160px] flex-1 rounded-xl border px-3 py-2 text-xs outline-none transition",
-              ui.input,
-            )}
+            className="min-w-[160px] flex-1 rounded-xl border border-[#d0d7de] bg-white px-3 py-2 text-xs text-[#24292f] outline-none transition placeholder:text-[#57606a] focus:border-[#0969da]"
           />
           {tagInput.trim() ? (
             <button
               type="button"
               onClick={() => addTag(tagInput)}
-              className={cx("rounded-xl px-3 py-2 text-xs font-bold transition", ui.tagActive)}
+              className="rounded-xl border border-[#0969da] bg-[#ddf4ff] px-3 py-2 text-xs font-bold text-[#0969da] transition"
             >
               追加
             </button>
@@ -447,12 +402,7 @@ export function SosPanel({
             type="button"
             disabled={!topic.trim() || createMutation.isPending}
             onClick={() => createMutation.mutate()}
-            className={cx(
-              "rounded-xl px-5 py-3 text-sm font-bold text-white transition disabled:cursor-not-allowed",
-              isDark
-                ? "bg-[#238636] hover:bg-[#2ea043] disabled:bg-slate-700"
-                : "bg-[#1f883d] hover:bg-[#1a7f37] disabled:bg-slate-400",
-            )}
+            className="rounded-xl bg-[#1f883d] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#1a7f37] disabled:cursor-not-allowed disabled:bg-slate-400"
           >
             {createMutation.isPending ? "投稿中..." : "質問を投稿"}
           </button>
@@ -462,8 +412,10 @@ export function SosPanel({
       {/* Question list */}
       <div className="mt-6 grid gap-3">
         {filteredItems.length === 0 ? (
-          <div className={cx("rounded-xl border px-4 py-5 text-sm shadow-sm", ui.card, ui.muted)}>
-            {activeTag ? `「${activeTag}」の質問はまだありません.` : "まだ質問はありません. 最初に投稿してみましょう."}
+          <div className="rounded-xl border border-[#d8dee4] bg-white px-4 py-5 text-sm text-[#57606a] shadow-sm">
+            {activeTags.size > 0
+              ? `選択したタグの質問はまだありません.`
+              : "まだ質問はありません. 最初に投稿してみましょう."}
           </div>
         ) : (
           filteredItems.map((item) => {
@@ -477,50 +429,42 @@ export function SosPanel({
                 key={item.id}
                 className={cx(
                   "rounded-xl border px-4 py-4 shadow-sm",
-                  ui.card,
                   matched && isOpen
-                    ? isDark
-                      ? "border-[#58a6ff] shadow-[#58a6ff]/10"
-                      : "border-[#0969da] shadow-[#0969da]/10"
-                    : undefined,
+                    ? "border-[#0969da] bg-white shadow-[#0969da]/10"
+                    : "border-[#d8dee4] bg-white",
                 )}
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className={cx("text-sm font-bold", ui.text)}>{item.user_name}</p>
+                      <p className="text-sm font-bold text-[#24292f]">{item.user_name}</p>
                       <span
                         className={cx(
                           "rounded-full px-2.5 py-0.5 text-[11px] font-bold",
-                          isOpen ? ui.open : ui.closed,
+                          isOpen ? "bg-[#dafbe1] text-[#116329]" : "bg-[#eaeef2] text-[#57606a]",
                         )}
                       >
                         {isOpen ? "Open" : "Closed"}
                       </span>
                       {matched && isOpen ? (
-                        <span
-                          className={cx(
-                            "rounded-full px-2.5 py-0.5 text-[11px] font-black",
-                            isDark
-                              ? "bg-[#1f6feb]/20 text-[#79c0ff]"
-                              : "bg-[#ddf4ff] text-[#0969da]",
-                          )}
-                        >
+                        <span className="rounded-full bg-[#ddf4ff] px-2.5 py-0.5 text-[11px] font-black text-[#0969da]">
                           あなたが答えられます
                         </span>
                       ) : null}
                     </div>
-                    <p className={cx("mt-1.5 text-sm leading-6", ui.muted)}>{item.topic}</p>
+                    <p className="mt-1.5 text-sm leading-6 text-[#57606a]">{item.topic}</p>
                     {tags.length > 0 ? (
                       <div className="mt-2 flex flex-wrap gap-1.5">
                         {tags.map((tag) => (
                           <button
                             key={tag}
                             type="button"
-                            onClick={() => setActiveTag(activeTag === tag ? null : tag)}
+                            onClick={() => toggleTag(tag)}
                             className={cx(
                               "rounded-full border px-2.5 py-0.5 text-xs font-semibold transition",
-                              activeTag === tag ? ui.tagActive : ui.tag,
+                              activeTags.has(tag)
+                                ? "border-[#0969da] bg-[#ddf4ff] text-[#0969da]"
+                                : "border-[#d0d7de] bg-[#f6f8fa] text-[#24292f]",
                             )}
                           >
                             {tag}
@@ -536,12 +480,7 @@ export function SosPanel({
                         type="button"
                         onClick={() => closeMutation.mutate(item.id)}
                         disabled={closeMutation.isPending}
-                        className={cx(
-                          "rounded-full border px-3 py-1 text-xs font-bold transition",
-                          isDark
-                            ? "border-[#30363d] text-slate-400 hover:border-[#f85149] hover:text-[#f85149]"
-                            : "border-[#d0d7de] text-[#57606a] hover:border-red-400 hover:text-red-600",
-                        )}
+                        className="rounded-full border border-[#d0d7de] px-3 py-1 text-xs font-bold text-[#57606a] transition hover:border-red-400 hover:text-red-600"
                       >
                         Close
                       </button>
@@ -554,12 +493,8 @@ export function SosPanel({
                         className={cx(
                           "rounded-full border px-3 py-1 text-xs font-bold transition",
                           matched
-                            ? isDark
-                              ? "border-[#1f6feb] bg-[#1f6feb] text-white hover:bg-[#388bfd]"
-                              : "border-[#0969da] bg-[#0969da] text-white hover:bg-[#0550ae]"
-                            : isDark
-                              ? "border-[#30363d] text-slate-300 hover:border-[#58a6ff] hover:text-[#79c0ff]"
-                              : "border-[#d0d7de] text-[#57606a] hover:border-[#0969da] hover:text-[#0969da]",
+                            ? "border-[#0969da] bg-[#0969da] text-white hover:bg-[#0550ae]"
+                            : "border-[#d0d7de] text-[#57606a] hover:border-[#0969da] hover:text-[#0969da]",
                         )}
                       >
                         返信する
@@ -575,12 +510,8 @@ export function SosPanel({
                         className={cx(
                           "rounded-full border px-3 py-1 text-xs font-bold transition",
                           activeChatRequestId === item.id
-                            ? isDark
-                              ? "border-[#1f6feb] text-[#79c0ff]"
-                              : "border-[#0969da] text-[#0969da]"
-                            : isDark
-                              ? "border-[#30363d] text-slate-300 hover:border-[#58a6ff]"
-                              : "border-[#d0d7de] text-[#57606a] hover:border-[#0969da]",
+                            ? "border-[#0969da] text-[#0969da]"
+                            : "border-[#d0d7de] text-[#57606a] hover:border-[#0969da]",
                         )}
                       >
                         スレッドを開く
@@ -596,25 +527,25 @@ export function SosPanel({
 
       {/* Thread/Chat */}
       {activeChatRequestId ? (
-        <section className={cx("mt-6 rounded-xl border p-4", ui.card)}>
+        <section className="mt-6 rounded-xl border border-[#d8dee4] bg-white p-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className={cx("text-xs font-bold uppercase tracking-[0.2em]", ui.eyebrow)}>Thread</p>
-              <h3 className={cx("mt-1 text-lg font-black tracking-[-0.03em]", ui.text)}>
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#0969da]">Thread</p>
+              <h3 className="mt-1 text-lg font-black tracking-[-0.03em] text-[#24292f]">
                 {chatQuery.data?.requester_name ?? "質問者"} × {chatQuery.data?.responder_name ?? "回答者"}
               </h3>
-              <p className={cx("mt-1 text-sm", ui.muted)}>
+              <p className="mt-1 text-sm text-[#57606a]">
                 {chatQuery.data?.topic ?? "スレッドを読み込み中..."}
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <span className={cx("rounded-full px-3 py-1 text-xs font-bold", ui.open)}>
+              <span className="rounded-full bg-[#dafbe1] px-3 py-1 text-xs font-bold text-[#116329]">
                 Connected
               </span>
               <button
                 type="button"
                 onClick={() => setActiveChatRequestId(null)}
-                className={cx("text-xs underline", ui.muted)}
+                className="text-xs underline text-[#57606a]"
               >
                 閉じる
               </button>
@@ -623,14 +554,7 @@ export function SosPanel({
 
           <div className="mt-4 grid max-h-[320px] gap-3 overflow-y-auto pr-1">
             {chatQuery.isError ? (
-              <p
-                className={cx(
-                  "rounded-xl border px-4 py-3 text-sm",
-                  isDark
-                    ? "border-[#f85149]/40 bg-[#3d1f19] text-[#ffa198]"
-                    : "border-red-200 bg-red-50 text-red-700",
-                )}
-              >
+              <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                 スレッドを開けませんでした. 参加者のみ閲覧できます.
               </p>
             ) : null}
@@ -642,7 +566,9 @@ export function SosPanel({
                   className={cx(
                     "max-w-[88%] rounded-2xl border px-4 py-3 shadow-sm",
                     mine ? "justify-self-end" : "justify-self-start",
-                    mine ? ui.mine : ui.theirs,
+                    mine
+                      ? "border-[#dafbe1] bg-[#dafbe1] text-[#116329]"
+                      : "border-[#d8dee4] bg-white text-[#24292f]",
                   )}
                 >
                   <p className="text-xs font-bold opacity-70">{msg.sender_name}</p>
@@ -663,18 +589,13 @@ export function SosPanel({
                 }
               }}
               placeholder="返信を入力..."
-              className={cx("rounded-xl border px-4 py-3 text-sm outline-none transition", ui.input)}
+              className="rounded-xl border border-[#d0d7de] bg-white px-4 py-3 text-sm text-[#24292f] outline-none transition placeholder:text-[#57606a] focus:border-[#0969da]"
             />
             <button
               type="button"
               disabled={!message.trim() || sendMessageMutation.isPending || chatQuery.isError}
               onClick={() => sendMessageMutation.mutate()}
-              className={cx(
-                "rounded-xl px-5 py-3 text-sm font-bold text-white transition disabled:cursor-not-allowed",
-                isDark
-                  ? "bg-[#238636] hover:bg-[#2ea043] disabled:bg-slate-700"
-                  : "bg-[#1f883d] hover:bg-[#1a7f37] disabled:bg-slate-400",
-              )}
+              className="rounded-xl bg-[#1f883d] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#1a7f37] disabled:cursor-not-allowed disabled:bg-slate-400"
             >
               {sendMessageMutation.isPending ? "送信中..." : "送信"}
             </button>
@@ -699,12 +620,8 @@ export function SosPanel({
                   className={cx(
                     "mt-3 w-full rounded-xl border px-4 py-2 text-sm font-bold transition",
                     alreadyAdded
-                      ? isDark
-                        ? "border-[#30363d] cursor-not-allowed text-slate-500"
-                        : "border-[#d0d7de] cursor-not-allowed text-slate-400"
-                      : isDark
-                        ? "border-[#1f6feb] text-[#79c0ff] hover:bg-[#0d1f38]"
-                        : "border-[#0969da] text-[#0969da] hover:bg-[#ddf4ff]",
+                      ? "cursor-not-allowed border-[#d0d7de] text-slate-400"
+                      : "border-[#0969da] text-[#0969da] hover:bg-[#ddf4ff]",
                   )}
                 >
                   {alreadyAdded ? "✓ コネクション追加済み" : "🔗 コネクションに追加する"}

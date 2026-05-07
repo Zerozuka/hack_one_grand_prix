@@ -1,10 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { NetworkMap } from "@/components/network-map";
 import { SkillTree } from "@/components/skill-tree";
-
-type Theme = "light" | "dark";
 
 function cx(...parts: Array<string | false | undefined>) {
   return parts.filter(Boolean).join(" ");
@@ -17,6 +14,10 @@ type Node = {
   nodeRole: string;
   relationshipCount: number;
   tags: string[];
+  bio?: string;
+  interests?: string[];
+  goals?: string[];
+  activityTags?: string[];
 };
 
 type Edge = {
@@ -27,114 +28,211 @@ type Edge = {
   strength: number;
 };
 
+function ProfileModal({
+  user,
+  currentUserId,
+  onClose,
+}: {
+  user: Node;
+  currentUserId: string;
+  onClose: () => void;
+}) {
+  const isSelf = user.id === currentUserId;
+  const allTags = [...new Set([...(user.interests ?? []), ...(user.goals ?? []), ...(user.activityTags ?? []), ...user.tags])];
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md rounded-xl border border-[#d8dee4] bg-white p-6 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#57606a]">Profile</p>
+            <h3 className="mt-1 text-2xl font-black tracking-[-0.04em] text-[#24292f]">{user.name}</h3>
+            <p className="mt-1 text-sm text-[#57606a]">{user.groupLabel}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="shrink-0 rounded-full px-3 py-1 text-sm text-[#57606a] hover:text-[#24292f]"
+          >
+            ✕
+          </button>
+        </div>
+
+        {user.bio ? (
+          <p className="mt-4 text-sm leading-6 text-[#57606a]">{user.bio}</p>
+        ) : null}
+
+        {allTags.length > 0 ? (
+          <div className="mt-4 flex flex-wrap gap-1.5">
+            {allTags.slice(0, 12).map((tag) => (
+              <span
+                key={tag}
+                className="rounded-full bg-[#ddf4ff] px-2.5 py-0.5 text-xs font-semibold text-[#0969da]"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        ) : null}
+
+        <div className="mt-4 flex items-center gap-4 text-sm text-[#57606a]">
+          <span>
+            <span className="font-semibold text-[#24292f]">{user.relationshipCount}</span> connections
+          </span>
+          {isSelf ? (
+            <span className="rounded-full bg-[#dafbe1] px-2.5 py-0.5 text-xs font-bold text-[#116329]">
+              自分
+            </span>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function MyClassPanel({
   nodes,
-  edges,
-  selectedUserId,
+  edges: _edges,
+  selectedUserId: _selectedUserId,
   currentUserId,
   skillTags,
-  theme = "light",
 }: {
   nodes: Node[];
   edges: Edge[];
   selectedUserId: string;
   currentUserId: string;
   skillTags: string[];
-  theme?: Theme;
 }) {
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
-  const isDark = theme === "dark";
-  const ui = {
-    section: isDark
-      ? "border-[#30363d] bg-[#161b22] text-slate-100 shadow-black/20"
-      : "border-[#d8dee4] bg-white text-[#24292f] shadow-slate-200/70",
-    muted: isDark ? "text-slate-400" : "text-[#57606a]",
-    text: isDark ? "text-slate-100" : "text-[#24292f]",
-    soft: isDark ? "border-[#30363d] bg-[#0d1117]" : "border-[#d8dee4] bg-[#f6f8fa]",
-    selfHighlight: isDark ? "border-[#58a6ff] bg-[#10243e]" : "border-[#0969da] bg-[#ddf4ff]",
-    legend: [
-      ["bg-orange-500", "Bridge", "別分野をつなぐ人"],
-      ["bg-blue-500", "Core", "中心にいる人"],
-      ["bg-green-500", "New", "新しく参加した人"],
-      ["bg-slate-500", "Isolated", "接続余地がある人"],
-    ],
-  };
+  const [profileUser, setProfileUser] = useState<Node | null>(null);
 
-  const taggedUserIds = new Set(
-    selectedTag
-      ? nodes
-          .filter((node) => node.tags.some((tag) => tag.toLowerCase() === selectedTag.toLowerCase()))
-          .map((node) => node.id)
-      : [],
-  );
-  const filteredEdges = selectedTag
-    ? edges.filter((edge) => taggedUserIds.has(edge.from_user_id) || taggedUserIds.has(edge.to_user_id))
-    : edges;
-  const visibleNodeIds = new Set([
-    currentUserId,
-    ...taggedUserIds,
-    ...filteredEdges.flatMap((edge) => [edge.from_user_id, edge.to_user_id]),
-  ]);
-  const filteredNodes = selectedTag ? nodes.filter((node) => visibleNodeIds.has(node.id)) : nodes;
+  const classmates = selectedTag
+    ? nodes.filter(
+        (node) =>
+          node.id !== currentUserId &&
+          node.tags.some((t) => t.toLowerCase() === selectedTag.toLowerCase()),
+      )
+    : nodes.filter((node) => node.id !== currentUserId);
+
+  const me = nodes.find((n) => n.id === currentUserId);
 
   return (
     <div className="space-y-6">
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
-        <NetworkMap
-          nodes={filteredNodes}
-          edges={filteredEdges}
-          selectedUserId={selectedUserId}
-          currentUserId={currentUserId}
-          initialTheme={theme}
-        />
-
-        <aside className="space-y-4">
+      <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="space-y-4">
           <SkillTree
             tags={skillTags}
             selectedTag={selectedTag}
             onSelect={setSelectedTag}
-            theme={theme}
           />
 
-          <section className={cx("rounded-xl border p-5 shadow-sm", ui.section)}>
-            <p className={cx("text-xs font-bold uppercase tracking-[0.22em]", ui.muted)}>
-              Network
-            </p>
-            <h2 className={cx("mt-2 text-2xl font-black tracking-[-0.04em]", ui.text)}>
-              つながり {filteredNodes.length} 人
+          <section className="rounded-xl border border-[#d8dee4] bg-white p-5 shadow-sm">
+            <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#57606a]">Classmates</p>
+            <h2 className="mt-2 text-2xl font-black tracking-[-0.04em] text-[#24292f]">
+              {selectedTag ? `「${selectedTag}」のクラスメイト` : "全クラスメイト"}
+              <span className="ml-2 text-lg font-bold text-[#57606a]">{classmates.length}名</span>
             </h2>
-            <div className="mt-4 grid max-h-[320px] gap-2 overflow-y-auto pr-1">
-              {filteredNodes.map((user) => (
-                <div
-                  key={user.id}
-                  className={cx(
-                    "rounded-lg border p-3",
-                    user.id === currentUserId ? ui.selfHighlight : ui.soft,
-                  )}
-                >
-                  <p className={cx("text-sm font-bold", ui.text)}>{user.name}</p>
-                  <p className={cx("mt-1 text-xs", ui.muted)}>
-                    {user.groupLabel} / {user.relationshipCount} connections
-                  </p>
-                </div>
-              ))}
-            </div>
+            {classmates.length === 0 ? (
+              <p className="mt-4 text-sm text-[#57606a]">
+                {selectedTag ? "このタグを持つクラスメイトはいません." : "クラスメイトはまだいません."}
+              </p>
+            ) : (
+              <div className="mt-4 grid max-h-[480px] gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
+                {classmates.map((user) => (
+                  <button
+                    key={user.id}
+                    type="button"
+                    onClick={() => setProfileUser(user)}
+                    className="w-full rounded-lg border border-[#d8dee4] bg-[#f6f8fa] p-3 text-left transition hover:border-[#0969da] hover:bg-[#f0f7ff]"
+                  >
+                    <p className="text-sm font-bold text-[#24292f]">{user.name}</p>
+                    <p className="mt-0.5 text-xs text-[#57606a]">
+                      {user.groupLabel} · {user.relationshipCount} connections
+                    </p>
+                    {user.tags.length > 0 ? (
+                      <div className="mt-1.5 flex flex-wrap gap-1">
+                        {user.tags.slice(0, 3).map((tag) => (
+                          <span
+                            key={tag}
+                            className={cx(
+                              "rounded-full px-2 py-0.5 text-[11px] font-semibold",
+                              selectedTag && tag.toLowerCase() === selectedTag.toLowerCase()
+                                ? "bg-[#0969da] text-white"
+                                : "bg-[#eaeef2] text-[#57606a]",
+                            )}
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+                  </button>
+                ))}
+              </div>
+            )}
           </section>
+        </div>
 
-          <section className={cx("rounded-xl border p-5 shadow-sm", ui.section)}>
-            <p className={cx("text-xs font-bold uppercase tracking-[0.22em]", ui.muted)}>Legend</p>
+        <aside className="space-y-4">
+          {me ? (
+            <section className="rounded-xl border border-[#d8dee4] bg-white p-5 shadow-sm">
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#57606a]">My Profile</p>
+              <button
+                type="button"
+                onClick={() => setProfileUser(me)}
+                className="mt-3 w-full text-left"
+              >
+                <p className="text-lg font-black text-[#24292f] hover:underline">{me.name}</p>
+              </button>
+              <p className="mt-1 text-xs text-[#57606a]">{me.groupLabel}</p>
+              {me.tags.length > 0 ? (
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {me.tags.slice(0, 8).map((tag) => (
+                    <span
+                      key={tag}
+                      className="rounded-full bg-[#ddf4ff] px-2.5 py-0.5 text-xs font-semibold text-[#0969da]"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+            </section>
+          ) : null}
+
+          <section className="rounded-xl border border-[#d8dee4] bg-white p-5 shadow-sm">
+            <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#57606a]">Legend</p>
             <div className="mt-4 grid gap-3 text-sm">
-              {ui.legend.map(([dot, label, body]) => (
+              {[
+                ["bg-orange-500", "Bridge", "別分野をつなぐ人"],
+                ["bg-blue-500", "Core", "中心にいる人"],
+                ["bg-green-500", "New", "新しく参加した人"],
+                ["bg-slate-500", "Isolated", "接続余地がある人"],
+              ].map(([dot, label, body]) => (
                 <div key={label} className="flex items-center gap-3">
-                  <span className={cx("h-3 w-3 rounded-full", dot)} />
-                  <span className={ui.text}>{label}</span>
-                  <span className={ui.muted}>{body}</span>
+                  <span className={cx("h-3 w-3 shrink-0 rounded-full", dot)} />
+                  <span className="text-[#24292f]">{label}</span>
+                  <span className="text-[#57606a]">{body}</span>
                 </div>
               ))}
             </div>
           </section>
         </aside>
       </section>
+
+      {profileUser ? (
+        <ProfileModal
+          user={profileUser}
+          currentUserId={currentUserId}
+          onClose={() => setProfileUser(null)}
+        />
+      ) : null}
     </div>
   );
 }

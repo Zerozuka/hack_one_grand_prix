@@ -17,8 +17,6 @@ type DiscussionTopic = {
   format: string;
 };
 
-type Theme = "light" | "dark";
-
 function cx(...parts: Array<string | false | undefined>) {
   return parts.filter(Boolean).join(" ");
 }
@@ -35,44 +33,15 @@ export function DiscussionBoard({
   communityId,
   currentUserId,
   initialEvents,
-  theme = "light",
 }: {
   communityId: string;
   currentUserId: string;
   initialEvents: DiscussionTopic[];
-  theme?: Theme;
 }) {
   const queryClient = useQueryClient();
   const [newTopic, setNewTopic] = useState("");
   const [location, setLocation] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const isDark = theme === "dark";
-
-  const ui = {
-    panel: isDark
-      ? "border-[#30363d] bg-[#161b22] text-slate-100 shadow-black/20"
-      : "border-[#d8dee4] bg-white text-[#24292f] shadow-slate-200/70",
-    eyebrow: isDark ? "text-[#79c0ff]" : "text-[#0969da]",
-    muted: isDark ? "text-slate-400" : "text-[#57606a]",
-    text: isDark ? "text-slate-100" : "text-[#24292f]",
-    input: isDark
-      ? "border-[#30363d] bg-[#0d1117] text-slate-100 placeholder:text-slate-600 focus:border-[#58a6ff]"
-      : "border-[#d0d7de] bg-white text-[#24292f] placeholder:text-[#57606a] focus:border-[#0969da]",
-    card: isDark ? "border-[#30363d] bg-[#0d1117] text-slate-100" : "border-[#d8dee4] bg-white text-[#24292f]",
-    activeBadge: isDark ? "bg-[#132d1d] text-[#7ee787]" : "bg-[#dafbe1] text-[#116329]",
-    closedBadge: isDark ? "bg-[#30363d] text-slate-400" : "bg-[#eaeef2] text-[#57606a]",
-    metric: isDark ? "bg-[#0d1117] text-[#7ee787]" : "bg-[#ddf4ff] text-[#0969da]",
-    soft: isDark ? "border-[#30363d] bg-[#161b22]" : "border-[#d8dee4] bg-[#f6f8fa]",
-    primary: isDark
-      ? "bg-[#238636] text-white hover:bg-[#2ea043] disabled:bg-slate-700"
-      : "bg-[#1f883d] text-white hover:bg-[#1a7f37] disabled:bg-slate-400",
-    join: isDark
-      ? "border-[#238636] text-[#7ee787] hover:bg-[#132d1d]"
-      : "border-[#1f883d] text-[#1f883d] hover:bg-[#dafbe1]",
-    leave: isDark
-      ? "border-[#30363d] text-slate-400 hover:border-[#f85149] hover:text-[#f85149]"
-      : "border-[#d0d7de] text-[#57606a] hover:border-red-400 hover:text-red-600",
-  };
 
   const topicsQuery = useQuery({
     queryKey: ["events", communityId],
@@ -160,20 +129,20 @@ export function DiscussionBoard({
   });
 
   return (
-    <section className={cx("rounded-xl border p-6 shadow-xl", ui.panel)}>
+    <section className="rounded-xl border border-[#d8dee4] bg-white p-6 shadow-xl text-[#24292f]">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className={cx("text-xs font-bold uppercase tracking-[0.22em]", ui.eyebrow)}>Discussion</p>
-          <h2 className={cx("mt-2 text-2xl font-black tracking-[-0.04em]", ui.text)}>
+          <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#0969da]">Discussion</p>
+          <h2 className="mt-2 text-2xl font-black tracking-[-0.04em] text-[#24292f]">
             ディスカッション
           </h2>
-          <p className={cx("mt-2 text-sm leading-6", ui.muted)}>
+          <p className="mt-2 text-sm leading-6 text-[#57606a]">
             学習トピックについて仲間と議論しましょう. トピックを作成して参加者を募れます.
           </p>
         </div>
-        <div className={cx("rounded-xl px-4 py-3 text-right shadow-sm", ui.metric)}>
-          <p className={cx("text-xs font-bold uppercase tracking-[0.18em]", ui.muted)}>Active</p>
-          <p className={cx("mt-1 text-4xl font-black tracking-[-0.05em]", ui.text)}>
+        <div className="rounded-xl bg-[#ddf4ff] px-4 py-3 text-right shadow-sm">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#57606a]">Active</p>
+          <p className="mt-1 text-4xl font-black tracking-[-0.05em] text-[#0969da]">
             {activeTopics.length}
           </p>
         </div>
@@ -185,7 +154,7 @@ export function DiscussionBoard({
           value={location}
           onChange={(e) => setLocation(e.target.value)}
           placeholder="場所 (例: 中央食堂, 図書館3F)"
-          className={cx("rounded-xl border px-4 py-3 text-sm outline-none transition", ui.input)}
+          className="rounded-xl border border-[#d0d7de] bg-white px-4 py-3 text-sm text-[#24292f] outline-none transition placeholder:text-[#57606a] focus:border-[#0969da]"
         />
         <input
           value={newTopic}
@@ -196,17 +165,14 @@ export function DiscussionBoard({
             }
           }}
           placeholder="トピック (例: 統計学の検定手法)"
-          className={cx("rounded-xl border px-4 py-3 text-sm outline-none transition", ui.input)}
+          className="rounded-xl border border-[#d0d7de] bg-white px-4 py-3 text-sm text-[#24292f] outline-none transition placeholder:text-[#57606a] focus:border-[#0969da]"
         />
         <button
           type="button"
           disabled={!newTopic.trim() || createMutation.isPending || alreadyInTopic}
           onClick={() => createMutation.mutate()}
           title={alreadyInTopic ? "既に別の議論に参加中です" : undefined}
-          className={cx(
-            "rounded-xl px-5 py-3 text-sm font-bold transition disabled:cursor-not-allowed",
-            ui.primary,
-          )}
+          className="rounded-xl bg-[#1f883d] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#1a7f37] disabled:cursor-not-allowed disabled:bg-slate-400"
         >
           {createMutation.isPending ? "作成中..." : alreadyInTopic ? "参加中" : "議論を始める"}
         </button>
@@ -215,7 +181,7 @@ export function DiscussionBoard({
       {/* Topic list */}
       <div className="mt-6 grid gap-3">
         {topicsQuery.data.length === 0 ? (
-          <div className={cx("rounded-xl border px-4 py-5 text-sm shadow-sm", ui.card, ui.muted)}>
+          <div className="rounded-xl border border-[#d8dee4] bg-white px-4 py-5 text-sm text-[#57606a] shadow-sm">
             まだ議論トピックはありません. 最初のトピックを作成してみましょう.
           </div>
         ) : (
@@ -225,7 +191,7 @@ export function DiscussionBoard({
             const isExpanded = expandedId === topic.id;
 
             return (
-              <article key={topic.id} className={cx("rounded-xl border shadow-sm", ui.card)}>
+              <article key={topic.id} className="rounded-xl border border-[#d8dee4] bg-white shadow-sm">
                 <div className="px-4 py-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
@@ -233,7 +199,9 @@ export function DiscussionBoard({
                         <span
                           className={cx(
                             "rounded-full px-2.5 py-0.5 text-[11px] font-bold",
-                            topic.is_live ? ui.activeBadge : ui.closedBadge,
+                            topic.is_live
+                              ? "bg-[#dafbe1] text-[#116329]"
+                              : "bg-[#eaeef2] text-[#57606a]",
                           )}
                         >
                           {topic.is_live ? "Active" : "Ended"}
@@ -242,14 +210,11 @@ export function DiscussionBoard({
                       <button
                         type="button"
                         onClick={() => setExpandedId(isExpanded ? null : topic.id)}
-                        className={cx(
-                          "mt-1.5 text-left text-base font-bold transition hover:opacity-80",
-                          ui.text,
-                        )}
+                        className="mt-1.5 text-left text-base font-bold text-[#24292f] transition hover:opacity-80"
                       >
                         {topic.title}
                       </button>
-                      <p className={cx("mt-1 text-xs", ui.muted)}>
+                      <p className="mt-1 text-xs text-[#57606a]">
                         {topic.location ? `📍 ${topic.location} / ` : ""}
                         {topic.participant_names.length > 0
                           ? `参加者: ${topic.participant_names.join(", ")} (${topic.participant_names.length}名)`
@@ -264,10 +229,7 @@ export function DiscussionBoard({
                           onClick={() => joinMutation.mutate(topic.id)}
                           disabled={joinMutation.isPending || alreadyInTopic}
                           title={alreadyInTopic ? "既に別の議論に参加中です" : undefined}
-                          className={cx(
-                            "rounded-full border px-3 py-1 text-xs font-bold transition disabled:cursor-not-allowed disabled:opacity-40",
-                            ui.join,
-                          )}
+                          className="rounded-full border border-[#1f883d] px-3 py-1 text-xs font-bold text-[#1f883d] transition hover:bg-[#dafbe1] disabled:cursor-not-allowed disabled:opacity-40"
                         >
                           参加する
                         </button>
@@ -278,10 +240,7 @@ export function DiscussionBoard({
                           type="button"
                           onClick={() => endMutation.mutate(topic.id)}
                           disabled={endMutation.isPending}
-                          className={cx(
-                            "rounded-full border px-3 py-1 text-xs font-bold transition",
-                            ui.leave,
-                          )}
+                          className="rounded-full border border-[#d0d7de] px-3 py-1 text-xs font-bold text-[#57606a] transition hover:border-red-400 hover:text-red-600"
                         >
                           終了
                         </button>
@@ -290,7 +249,7 @@ export function DiscussionBoard({
                       <button
                         type="button"
                         onClick={() => setExpandedId(isExpanded ? null : topic.id)}
-                        className={cx("text-xs", ui.muted)}
+                        className="text-xs text-[#57606a]"
                       >
                         {isExpanded ? "▲" : "▼"}
                       </button>
@@ -299,8 +258,8 @@ export function DiscussionBoard({
                 </div>
 
                 {isExpanded ? (
-                  <div className={cx("border-t px-4 py-4", ui.soft)}>
-                    <p className={cx("text-xs", ui.muted)}>
+                  <div className="border-t border-[#d8dee4] bg-[#f6f8fa] px-4 py-4">
+                    <p className="text-xs text-[#57606a]">
                       形式: {topic.format} / {topic.time_label}
                     </p>
                     {topic.participant_names.length > 0 ? (
@@ -308,19 +267,14 @@ export function DiscussionBoard({
                         {topic.participant_names.map((name) => (
                           <span
                             key={name}
-                            className={cx(
-                              "rounded-full px-3 py-1 text-xs font-semibold",
-                              isDark
-                                ? "bg-[#30363d] text-slate-200"
-                                : "bg-[#eaeef2] text-[#24292f]",
-                            )}
+                            className="rounded-full bg-[#eaeef2] px-3 py-1 text-xs font-semibold text-[#24292f]"
                           >
                             {name}
                           </span>
                         ))}
                       </div>
                     ) : (
-                      <p className={cx("mt-3 text-sm", ui.muted)}>参加者はまだいません.</p>
+                      <p className="mt-3 text-sm text-[#57606a]">参加者はまだいません.</p>
                     )}
                   </div>
                 ) : null}
@@ -331,14 +285,7 @@ export function DiscussionBoard({
       </div>
 
       {joinError ? (
-        <div
-          className={cx(
-            "mt-4 rounded-xl border px-4 py-3 text-sm font-medium",
-            isDark
-              ? "border-[#f85149]/40 bg-[#3d1f19] text-[#ffa198]"
-              : "border-red-200 bg-red-50 text-red-700",
-          )}
-        >
+        <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
           {joinError}
           <button
             type="button"
