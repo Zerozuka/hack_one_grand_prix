@@ -40,8 +40,34 @@ type HelpChat = {
   messages: ChatMessage[];
 };
 
+type HelpTopicParts = {
+  title: string;
+  detail: string;
+  imageName: string | null;
+};
+
 function cx(...parts: Array<string | false | undefined>) {
   return parts.filter(Boolean).join(" ");
+}
+
+function serializeHelpTopic(title: string, detail: string, imageName: string | null) {
+  return [
+    title.trim(),
+    detail.trim() ? `詳細: ${detail.trim()}` : "",
+    imageName ? `添付画像: ${imageName}` : "",
+  ].filter(Boolean).join("\n\n");
+}
+
+function parseHelpTopic(topic: string): HelpTopicParts {
+  const lines = topic.split(/\n+/).map((line) => line.trim()).filter(Boolean);
+  const title = lines[0] ?? topic;
+  const detailLine = lines.find((line) => line.startsWith("詳細:"));
+  const imageLine = lines.find((line) => line.startsWith("添付画像:"));
+  return {
+    title,
+    detail: detailLine?.replace(/^詳細:\s*/, "") ?? "",
+    imageName: imageLine?.replace(/^添付画像:\s*/, "") ?? null,
+  };
 }
 
 async function fetchHelp(communityId: string) {
@@ -58,6 +84,30 @@ async function fetchChat(requestId: string) {
   });
   if (!response.ok) throw new Error(await response.text());
   return (await response.json()) as HelpChat;
+}
+
+function discussionHref(item: HelpItem) {
+  const parsed = parseHelpTopic(item.topic);
+  const params = new URLSearchParams({
+    view: "discussion",
+    communityId: item.community_id,
+    discussionTopic: parsed.title,
+  });
+  if (item.user_id) {
+    params.set("inviteUserId", item.user_id);
+  }
+  return `/dashboard?${params.toString()}`;
+}
+
+function discussionThreadHref(chat: HelpChat) {
+  const parsed = parseHelpTopic(chat.topic);
+  const params = new URLSearchParams({
+    view: "discussion",
+    communityId: chat.community_id,
+    discussionTopic: parsed.title,
+  });
+  params.set("inviteUserId", chat.requester_user_id);
+  return `/dashboard?${params.toString()}`;
 }
 
 function formatChatTime(value: string) {
@@ -92,9 +142,13 @@ export function SosPanel({
 }) {
   const queryClient = useQueryClient();
   const [topic, setTopic] = useState("");
+  const [detail, setDetail] = useState("");
+  const [imageName, setImageName] = useState<string | null>(null);
   const [tagInput, setTagInput] = useState("");
   const [questionTags, setQuestionTags] = useState<string[]>([]);
   const [activeTags, setActiveTags] = useState<Set<string>>(new Set());
+  const [helpSearch, setHelpSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "resolved">("all");
   const [aiNotification, setAiNotification] = useState<{
     sosId: string;
     topic: string;
@@ -152,13 +206,15 @@ export function SosPanel({
       const response = await fetch("/api/proxy/v1/sos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ community_id: communityId, topic, tags: questionTags }),
+        body: JSON.stringify({ community_id: communityId, topic: serializeHelpTopic(topic, detail, imageName), tags: questionTags }),
       });
       if (!response.ok) throw new Error(await response.text());
       return response.json() as Promise<HelpItem>;
     },
     onSuccess: async () => {
       setTopic("");
+      setDetail("");
+      setImageName(null);
       setQuestionTags([]);
       setTagInput("");
       await queryClient.invalidateQueries({ queryKey: ["sos", communityId] });
@@ -199,10 +255,16 @@ export function SosPanel({
   const openCount = helpQuery.data.filter((item) => item.status === "active").length;
   const allTags = [...new Set(helpQuery.data.flatMap((item) => item.tags))];
 
-  const filteredItems =
-    activeTags.size > 0
-      ? helpQuery.data.filter((item) => item.tags.some((t) => activeTags.has(t)))
-      : helpQuery.data;
+  const filteredItems = helpQuery.data.filter((item) => {
+    const parsed = parseHelpTopic(item.topic);
+    const matchesTags = activeTags.size === 0 || item.tags.some((t) => activeTags.has(t));
+    const matchesStatus = statusFilter === "all" || item.status === statusFilter;
+    const needle = helpSearch.trim().toLowerCase();
+    const matchesSearch =
+      !needle ||
+      [parsed.title, parsed.detail, item.user_name, ...item.tags].join(" ").toLowerCase().includes(needle);
+    return matchesTags && matchesStatus && matchesSearch;
+  });
 
   function toggleTag(tag: string) {
     setActiveTags((prev) => {
@@ -286,6 +348,36 @@ export function SosPanel({
       </div>
 
       {/* Multi-tag filter */}
+      <div className="mt-4 grid gap-2 md:grid-cols-[1fr_auto]">
+        <input
+          value={helpSearch}
+          onChange={(e) => setHelpSearch(e.target.value)}
+          placeholder="質問を検索 (例: 線形, Python, 証明)"
+          className="rounded-xl border border-[#d0d7de] bg-white px-4 py-2.5 text-sm text-[#24292f] outline-none transition placeholder:text-[#57606a] focus:border-[#0969da]"
+        />
+        <div className="flex gap-2">
+          {[
+            ["all", "すべて"],
+            ["active", "Open"],
+            ["resolved", "Closed"],
+          ].map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setStatusFilter(value as "all" | "active" | "resolved")}
+              className={cx(
+                "rounded-xl border px-3 py-2 text-xs font-bold transition",
+                statusFilter === value
+                  ? "border-[#24292f] bg-[#24292f] text-white"
+                  : "border-[#d0d7de] bg-white text-[#57606a] hover:border-[#0969da] hover:text-[#0969da]",
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {allTags.length > 0 ? (
         <div className="mt-4 flex flex-wrap gap-2">
           <span className="self-center text-xs font-semibold text-[#57606a]">フィルタ:</span>
@@ -374,6 +466,31 @@ export function SosPanel({
           ) : null}
         </div>
 
+        <textarea
+          value={detail}
+          onChange={(e) => setDetail(e.target.value)}
+          placeholder="詳細 (どこまで分かっていて、どこで詰まっているか)"
+          rows={3}
+          className="w-full resize-none rounded-xl border border-[#d0d7de] bg-white px-4 py-3 text-sm text-[#24292f] outline-none transition placeholder:text-[#57606a] focus:border-[#0969da]"
+        />
+
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="cursor-pointer rounded-full border border-[#d0d7de] bg-white px-3 py-1.5 text-xs font-bold text-[#57606a] transition hover:border-[#0969da] hover:text-[#0969da]">
+            画像を添付
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => setImageName(e.target.files?.[0]?.name ?? null)}
+            />
+          </label>
+          {imageName ? (
+            <span className="rounded-full bg-[#ddf4ff] px-3 py-1 text-xs font-semibold text-[#0969da]">
+              {imageName}
+            </span>
+          ) : null}
+        </div>
+
         <div className="flex justify-end">
           <button
             type="button"
@@ -397,6 +514,7 @@ export function SosPanel({
         ) : (
           filteredItems.map((item) => {
             const tags = item.tags;
+            const parsedTopic = parseHelpTopic(item.topic);
             const matched = item.matched_user_ids.includes(currentUserId);
             const isAuthor = item.user_id === currentUserId;
             const isOpen = item.status === "active";
@@ -419,7 +537,6 @@ export function SosPanel({
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-sm font-bold text-[#24292f]">{item.user_name}</p>
                       <span
                         className={cx(
                           "rounded-full px-2.5 py-0.5 text-[11px] font-bold",
@@ -434,7 +551,18 @@ export function SosPanel({
                         </span>
                       ) : null}
                     </div>
-                    <p className="mt-1.5 text-sm leading-6 text-[#57606a]">{item.topic}</p>
+                    <h3 className="mt-1.5 text-base font-black tracking-[-0.03em] text-[#24292f]">
+                      {parsedTopic.title}
+                    </h3>
+                    <p className="mt-1 text-xs font-semibold text-[#57606a]">
+                      投稿者: {item.user_name}
+                    </p>
+                    {parsedTopic.detail ? (
+                      <p className="mt-2 text-sm leading-6 text-[#57606a]">{parsedTopic.detail}</p>
+                    ) : null}
+                    {parsedTopic.imageName ? (
+                      <p className="mt-2 text-xs font-semibold text-[#0969da]">添付画像: {parsedTopic.imageName}</p>
+                    ) : null}
                     {tags.length > 0 ? (
                       <div className="mt-2 flex flex-wrap gap-1.5">
                         {tags.map((tag) => (
@@ -533,6 +661,8 @@ function HelpThread({
   const queryClient = useQueryClient();
   const [message, setMessage] = useState("");
   const [edgeAdded, setEdgeAdded] = useState(false);
+  const [showConnectionPrompt, setShowConnectionPrompt] = useState(false);
+  const [discussionRequested, setDiscussionRequested] = useState(false);
 
   const chatQuery = useQuery({
     queryKey: ["sos-chat", requestId],
@@ -541,11 +671,11 @@ function HelpThread({
   });
 
   const sendMessageMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (body?: string) => {
       const response = await fetch(`/api/proxy/v1/sos/${requestId}/chat/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body: message }),
+        body: JSON.stringify({ body: body ?? message }),
       });
       if (!response.ok) throw new Error(await response.text());
       return response.json() as Promise<HelpChat>;
@@ -580,6 +710,8 @@ function HelpThread({
   });
 
   const chat = chatQuery.data;
+  const hasDiscussionRequest =
+    discussionRequested || Boolean(chat?.messages.some((msg) => msg.body.includes("議論しませんか")));
   const otherUserId = chat
     ? chat.requester_user_id === currentUserId
       ? chat.responder_user_id
@@ -649,7 +781,7 @@ function HelpThread({
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey && message.trim()) {
               e.preventDefault();
-              sendMessageMutation.mutate();
+              sendMessageMutation.mutate(undefined);
             }
           }}
           placeholder="コメントを入力"
@@ -658,27 +790,90 @@ function HelpThread({
         <button
           type="button"
           disabled={!message.trim() || sendMessageMutation.isPending || chatQuery.isError}
-          onClick={() => sendMessageMutation.mutate()}
+          onClick={() => sendMessageMutation.mutate(undefined)}
           className="rounded-xl bg-[#1f883d] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#1a7f37] disabled:cursor-not-allowed disabled:bg-slate-400"
         >
           {sendMessageMutation.isPending ? "送信中..." : "送信"}
         </button>
       </div>
 
+      {chat ? (
+        <div className="mt-3 rounded-xl border border-[#7c3aed] bg-[#f5f3ff] p-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#6d28d9]">Discussion Request</p>
+              <p className="mt-1 text-sm font-bold text-[#24292f]">このHelpを議論に広げますか？</p>
+            </div>
+            {!hasDiscussionRequest ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setDiscussionRequested(true);
+                  sendMessageMutation.mutate("議論しませんか？OKならDiscussionを立てましょう。");
+                }}
+                className="rounded-full bg-[#7c3aed] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#6d28d9]"
+              >
+                議論しませんか？
+              </button>
+            ) : (
+              <a
+                href={discussionThreadHref(chat)}
+                className="rounded-full bg-[#1f883d] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#1a7f37]"
+              >
+                OKして議論を立てる
+              </a>
+            )}
+          </div>
+        </div>
+      ) : null}
+
       {otherUserId ? (
         <button
           type="button"
-          disabled={edgeAdded || addEdgeMutation.isPending}
-          onClick={() => addEdgeMutation.mutate({ toUserId: otherUserId })}
-          className={cx(
-            "mt-3 w-full rounded-xl border px-4 py-2 text-sm font-bold transition",
-            edgeAdded
-              ? "cursor-not-allowed border-[#d0d7de] text-slate-400"
-              : "border-[#0969da] text-[#0969da] hover:bg-[#ddf4ff]",
-          )}
+          onClick={() => setShowConnectionPrompt(true)}
+          className="mt-3 w-full rounded-xl border border-[#0969da] px-4 py-2 text-sm font-bold text-[#0969da] transition hover:bg-[#ddf4ff]"
         >
-          {edgeAdded ? "コネクション追加済み" : "コネクションに追加する"}
+          会話を終了してコネクション確認へ
         </button>
+      ) : null}
+
+      {showConnectionPrompt && otherUserId ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-sm rounded-xl border border-[#d8dee4] bg-white p-5 shadow-2xl">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#0969da]">5分Sync 完了</p>
+            <h4 className="mt-2 text-xl font-black tracking-[-0.04em] text-[#24292f]">
+              この人をコネクションに追加しますか？
+            </h4>
+            <p className="mt-2 text-sm leading-6 text-[#57606a]">
+              会話が終わったあとに追加することで, 知見ネットワークに自然につながりが残ります.
+            </p>
+            <div className="mt-4 grid gap-2">
+              <button
+                type="button"
+                disabled={edgeAdded || addEdgeMutation.isPending}
+                onClick={() => addEdgeMutation.mutate({ toUserId: otherUserId })}
+                className={cx(
+                  "rounded-xl px-4 py-2 text-sm font-bold transition",
+                  edgeAdded
+                    ? "cursor-not-allowed bg-[#eaeef2] text-slate-400"
+                    : "bg-[#0969da] text-white hover:bg-[#0550ae]",
+                )}
+              >
+                {edgeAdded ? "コネクション追加済み" : "コネクションに追加する"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowConnectionPrompt(false);
+                  if (edgeAdded) onClose();
+                }}
+                className="rounded-xl border border-[#d0d7de] px-4 py-2 text-sm font-bold text-[#57606a] hover:bg-[#f6f8fa]"
+              >
+                {edgeAdded ? "閉じる" : "あとで"}
+              </button>
+            </div>
+          </div>
+        </div>
       ) : null}
     </section>
   );

@@ -91,6 +91,15 @@ function ProfileModal({
             </span>
           ) : null}
         </div>
+
+        {!isSelf ? (
+          <a
+            href={`/dashboard?view=discussion&inviteUserId=${encodeURIComponent(user.id)}`}
+            className="mt-5 block rounded-xl bg-[#0969da] px-4 py-3 text-center text-sm font-bold text-white transition hover:bg-[#0550ae]"
+          >
+            この人とDiscussionを始める
+          </a>
+        ) : null}
       </div>
     </div>
   );

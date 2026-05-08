@@ -27,6 +27,7 @@ type DashboardData = {
     group_label: string;
     role_label: string;
     bio: string;
+    availability: string | null;
     interests: string[];
     goals: string[];
     activity_tags: string[];
@@ -40,6 +41,7 @@ type DashboardData = {
     role_label: string;
     node_role: string;
     bio: string;
+    availability: string | null;
     interests: string[];
     goals: string[];
     activity_tags: string[];
@@ -171,6 +173,8 @@ async function loadDashboard(searchParams: SearchParams) {
   const courseQuery = typeof params.q === "string" ? params.q : "";
   const view = normalizeView(typeof params.view === "string" ? params.view : undefined);
   const coursePage = typeof params.page === "string" ? Math.max(0, parseInt(params.page, 10) || 0) : 0;
+  const inviteUserId = typeof params.inviteUserId === "string" ? params.inviteUserId : undefined;
+  const discussionTopic = typeof params.discussionTopic === "string" ? params.discussionTopic : undefined;
 
   const me = await apiFetch<MeData>("/v1/me");
   const communityId =
@@ -193,7 +197,7 @@ async function loadDashboard(searchParams: SearchParams) {
     `/v1/courses${toQueryString({ query: courseQuery, offset: coursePage * PAGE_SIZE, limit: PAGE_SIZE })}`,
   );
 
-  return { me, dashboard, courses, communityId, mode, courseQuery, selectedUserId, view, coursePage };
+  return { me, dashboard, courses, communityId, mode, courseQuery, selectedUserId, view, coursePage, inviteUserId, discussionTopic };
 }
 
 function MeshIllustration() {
@@ -277,7 +281,7 @@ export default async function DashboardPage({
   }
 
   try {
-    const { me, dashboard, courses, communityId, mode, courseQuery, selectedUserId, view, coursePage } =
+    const { me, dashboard, courses, communityId, mode, courseQuery, selectedUserId, view, coursePage, inviteUserId, discussionTopic } =
       await loadDashboard(searchParams);
     const activeSosCount = dashboard.sos.filter((item) => item.status === "active").length;
     const liveDiscussionCount = dashboard.events.filter((event) => event.is_live).length;
@@ -601,6 +605,9 @@ export default async function DashboardPage({
               communityId={communityId}
               currentUserId={me.user.id}
               initialEvents={dashboard.events}
+              users={dashboard.users}
+              initialInviteUserId={inviteUserId}
+              initialTopic={discussionTopic}
             />
           ) : null}
 
