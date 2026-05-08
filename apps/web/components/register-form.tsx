@@ -161,23 +161,6 @@ export function RegisterForm({ communities }: Props) {
           </form>
         </div>
       </section>
-
-      <aside className="rounded-xl border border-[#d8dee4] bg-white p-6 shadow-xl shadow-slate-200/70">
-        <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#57606a]">登録後にできること</p>
-        <ul className="mt-4 grid gap-3">
-          {[
-            { icon: "🆘", text: "SOS を送って5分以内に助けを求める" },
-            { icon: "🔗", text: "知見グラフに自分のノードを追加する" },
-            { icon: "📚", text: "学びたいこと・教えられることでマッチング" },
-            { icon: "📅", text: "勉強会・イベントに参加する" },
-          ].map(({ icon, text }) => (
-            <li key={text} className="flex items-start gap-3 rounded-lg border border-[#d8dee4] bg-[#f6f8fa] p-4">
-              <span className="text-xl">{icon}</span>
-              <p className="text-sm leading-6 text-[#57606a]">{text}</p>
-            </li>
-          ))}
-        </ul>
-      </aside>
     </div>
   );
 }

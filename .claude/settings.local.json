@@ -34,7 +34,8 @@
       "Bash(gh issue *)",
       "Bash(git -C /Users/rei_ishizuka/ghq/github.com/Zerozuka/hack_one_grand_prix status)",
       "Bash(git -C /Users/rei_ishizuka/ghq/github.com/Zerozuka/hack_one_grand_prix diff --stat)",
-      "Bash(git *)"
+      "Bash(git *)",
+      "Bash(npx tsc *)"
     ]
   }
 }

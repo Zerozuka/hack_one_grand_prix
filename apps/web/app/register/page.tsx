@@ -5,7 +5,7 @@ import { RegisterForm } from "@/components/register-form";
 async function fetchCommunities() {
   const apiBase = process.env.API_BASE_URL ?? "http://localhost:8000";
   try {
-    const res = await fetch(`${apiBase}/v1/communities`, {
+    const res = await fetch(`${apiBase}/v1/communities/public`, {
       next: { revalidate: 60 },
     });
     if (!res.ok) return [];

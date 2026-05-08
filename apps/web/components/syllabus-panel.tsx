@@ -55,46 +55,38 @@ export function SyllabusPanel({
   prevPageHref: string | null;
   nextPageHref: string | null;
 }) {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [detail, setDetail] = useState<CourseDetail | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [openIds, setOpenIds] = useState<Set<string>>(new Set());
+  const [details, setDetails] = useState<Map<string, CourseDetail>>(new Map());
+  const [loadingIds, setLoadingIds] = useState<Set<string>>(new Set());
 
   const totalPages = Math.ceil(totalItems / pageSize);
 
   async function openDetail(courseId: string) {
-    if (selectedId === courseId) {
-      setSelectedId(null);
-      setDetail(null);
+    if (openIds.has(courseId)) {
+      setOpenIds((prev) => { const next = new Set(prev); next.delete(courseId); return next; });
       return;
     }
-    setSelectedId(courseId);
-    setDetail(null);
-    setLoading(true);
+    setOpenIds((prev) => new Set(prev).add(courseId));
+    if (details.has(courseId)) return;
+    setLoadingIds((prev) => new Set(prev).add(courseId));
     try {
       const res = await fetch(`/api/proxy/v1/courses/${courseId}`);
       if (res.ok) {
         const data = (await res.json()) as CourseDetail;
-        setDetail(data);
+        setDetails((prev) => new Map(prev).set(courseId, data));
       }
     } finally {
-      setLoading(false);
+      setLoadingIds((prev) => { const next = new Set(prev); next.delete(courseId); return next; });
     }
   }
 
   return (
     <section className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
       <aside className="overflow-hidden rounded-xl border border-[#d8dee4] bg-white shadow-sm">
-        <svg viewBox="0 0 360 220" className="h-[190px] w-full">
-          <rect width="360" height="220" rx="26" fill="#f8fafc" />
-          <rect x="64" y="46" width="92" height="132" rx="18" fill="#ffffff" stroke="#38bdf8" strokeWidth="4" />
-          <rect x="178" y="46" width="118" height="132" rx="18" fill="#ffffff" stroke="#cbd5e1" strokeWidth="4" />
-          <path d="M86 78 h48 M86 102 h34 M86 126 h46" stroke="#38bdf8" strokeWidth="7" strokeLinecap="round" />
-          <path d="M202 78 h62 M202 102 h46 M202 126 h68" stroke="#64748b" strokeWidth="7" strokeLinecap="round" />
-        </svg>
         <div className="p-5">
           <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#57606a]">Syllabus</p>
           <h2 className="mt-2 text-2xl font-black tracking-[-0.04em] text-[#24292f]">
-            シラバスから知見を探す
+            シラバスを探す
           </h2>
           <form action="/dashboard" className="mt-5 grid gap-2">
             <input type="hidden" name="communityId" value={communityId} />
@@ -116,13 +108,15 @@ export function SyllabusPanel({
 
       <section className="grid gap-3 content-start">
         {courses.map((course) => {
-          const isSelected = selectedId === course.id;
+          const isOpen = openIds.has(course.id);
+          const detail = details.get(course.id) ?? null;
+          const loading = loadingIds.has(course.id);
           return (
             <article
               key={course.id}
               className={cx(
                 "rounded-xl border shadow-sm transition",
-                isSelected ? "border-[#0969da] bg-white" : "border-[#d8dee4] bg-white",
+                isOpen ? "border-[#0969da] bg-white" : "border-[#d8dee4] bg-white",
               )}
             >
               <button
@@ -143,7 +137,7 @@ export function SyllabusPanel({
                     <span className="rounded-full border border-[#d8dee4] bg-[#f6f8fa] px-3 py-1 text-xs font-bold text-[#57606a]">
                       {course.lecture_plan_count} plans
                     </span>
-                    <span className="text-xs text-[#57606a]">{isSelected ? "▲" : "▼"}</span>
+                    <span className="text-xs text-[#57606a]">{isOpen ? "▲" : "▼"}</span>
                   </div>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2">
@@ -158,7 +152,7 @@ export function SyllabusPanel({
                 </div>
               </button>
 
-              {isSelected ? (
+              {isOpen ? (
                 <div className="border-t border-[#d8dee4] px-5 py-4">
                   {loading ? (
                     <p className="text-sm text-[#57606a]">読み込み中...</p>

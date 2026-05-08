@@ -22,7 +22,6 @@ type UserProfile = {
   name: string;
   group_label: string;
   role_label: string;
-  node_role: string;
   bio: string;
   availability: string | null;
   interests: string[];
@@ -182,6 +181,7 @@ export function DiscussionBoard({
     initialInviteUserId && initialInviteUserId !== currentUserId ? [initialInviteUserId] : [],
   );
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [showEnded, setShowEnded] = useState(false);
   const [profileUser, setProfileUser] = useState<UserProfile | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [reactions, setReactions] = useState<Record<string, string[]>>({});
@@ -225,6 +225,7 @@ export function DiscussionBoard({
   }, [initialTopic]);
 
   const activeTopics = topicsQuery.data.filter((t) => t.is_live);
+  const endedTopics = topicsQuery.data.filter((t) => !t.is_live);
   const usersById = new Map(users.map((user) => [user.id, user]));
   const invitedUsers = selectedInviteIds.map((id) => usersById.get(id)).filter(Boolean) as UserProfile[];
   const allInviteTags = [
@@ -623,7 +624,13 @@ export function DiscussionBoard({
             </span>
           ) : null}
           {endedCount > 0 ? (
-            <span className="rounded-full bg-[#f6f8fa] px-3 py-1">終了済み {endedCount} 件は非表示です.</span>
+            <button
+              type="button"
+              onClick={() => setShowEnded((v) => !v)}
+              className="rounded-full bg-[#f6f8fa] px-3 py-1 transition hover:bg-[#eaeef2]"
+            >
+              終了済み {endedCount} 件 {showEnded ? "▲ 隠す" : "▼ 表示する"}
+            </button>
           ) : null}
         </div>
       ) : null}
@@ -869,6 +876,73 @@ export function DiscussionBoard({
           })
         )}
       </div>
+
+      {showEnded && endedTopics.length > 0 ? (
+        <div className="mt-6">
+          <p className="mb-3 text-xs font-bold uppercase tracking-[0.22em] text-[#57606a]">
+            終了済み
+          </p>
+          <div className="grid gap-3">
+            {endedTopics.map((topic) => {
+              const isExpanded = expandedId === topic.id;
+              return (
+                <article key={topic.id} className="rounded-xl border border-[#d8dee4] bg-[#f6f8fa] shadow-sm opacity-70">
+                  <div className="px-4 py-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <span className="rounded-full bg-[#eaeef2] px-2.5 py-0.5 text-[11px] font-bold text-[#57606a]">
+                          Ended
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setExpandedId(isExpanded ? null : topic.id)}
+                          className="mt-1.5 block text-left text-base font-bold text-[#24292f] transition hover:opacity-80"
+                        >
+                          {topic.title}
+                        </button>
+                        <p className="mt-1 text-xs text-[#57606a]">
+                          {topic.location ? `📍 ${topic.location} / ` : ""}
+                          {topic.participant_names.length > 0
+                            ? `参加者: ${topic.participant_names.join(", ")} (${topic.participant_names.length}名)`
+                            : "参加者なし"}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setExpandedId(isExpanded ? null : topic.id)}
+                        className="text-xs text-[#57606a]"
+                      >
+                        {isExpanded ? "▲" : "▼"}
+                      </button>
+                    </div>
+                  </div>
+                  {isExpanded ? (
+                    <div className="border-t border-[#d8dee4] bg-white px-4 py-4">
+                      <p className="text-xs text-[#57606a]">
+                        形式: {topic.format} / {topic.time_label}
+                      </p>
+                      {topic.participant_names.length > 0 ? (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {topic.participant_names.map((name) => (
+                            <span
+                              key={name}
+                              className="rounded-full bg-[#eaeef2] px-3 py-1 text-xs font-semibold text-[#24292f]"
+                            >
+                              {name}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="mt-3 text-sm text-[#57606a]">参加者はいませんでした.</p>
+                      )}
+                    </div>
+                  ) : null}
+                </article>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
 
       {joinError ? (
         <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">

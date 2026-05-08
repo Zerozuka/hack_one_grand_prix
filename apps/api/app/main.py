@@ -7,6 +7,7 @@ from app.routers import router
 settings = get_settings()
 app = FastAPI(title=settings.app_name, version="0.1.0")
 
+# Set up CORS middleware to allow cross-origin requests from specified origins
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
@@ -15,5 +16,5 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(router)
+app.include_router(router) # Include the router from the app.routers module
 

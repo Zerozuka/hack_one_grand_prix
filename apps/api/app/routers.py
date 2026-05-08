@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
-from sqlalchemy import delete, or_, select
+from sqlalchemy import delete, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.deps import RequestContext, ensure_can_manage, ensure_self_or_manager, get_request_context
@@ -316,6 +316,24 @@ def get_me(context: RequestContext = Depends(get_request_context), db: Session =
     )
 
 
+@router.get("/communities/public", response_model=list[CommunityOut])
+def get_communities_public(db: Session = Depends(get_db)) -> list[CommunityOut]:
+    from app.models import Community as CommunityModel
+    rows = db.execute(
+        select(
+            CommunityModel.id,
+            CommunityModel.name,
+            CommunityModel.subtitle,
+            CommunityModel.description,
+            func.count(CommunityMembership.id).label("member_count"),
+        )
+        .join(CommunityMembership, CommunityMembership.community_id == CommunityModel.id, isouter=True)
+        .group_by(CommunityModel.id)
+        .order_by(CommunityModel.name.asc())
+    ).all()
+    return [CommunityOut(**row._mapping) for row in rows]
+
+
 @router.get("/communities", response_model=list[CommunityOut])
 def get_communities(context: RequestContext = Depends(get_request_context), db: Session = Depends(get_db)) -> list[CommunityOut]:
     return list_communities_for_user(db, context.user.id)
@@ -393,6 +411,23 @@ def create_user(
     users_by_id = {item.id: item for item in users}
     user_tags = build_user_tag_index(db, list(users_by_id))
     return serialize_user(user, payload.community_id, relationships, users_by_id, user_tags)
+
+
+@router.get("/tags")
+def list_tags(
+    kind: str | None = None,
+    context: RequestContext = Depends(get_request_context),
+    db: Session = Depends(get_db),
+) -> list[dict[str, str | int]]:
+    from app.models import Tag, TagKind
+    query = select(Tag)
+    if kind:
+        kind_map = {"interest": TagKind.interest, "goal": TagKind.goal, "activity": TagKind.activity}
+        if kind not in kind_map:
+            raise HTTPException(status_code=400, detail=f"Invalid kind: {kind}")
+        query = query.where(Tag.kind == kind_map[kind])
+    tags = db.scalars(query.order_by(Tag.kind, Tag.name)).all()
+    return [{"id": tag.id, "kind": tag.kind.value, "name": tag.name} for tag in tags]
 
 
 @router.get("/users/{user_id}", response_model=UserProfileOut)

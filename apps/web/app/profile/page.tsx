@@ -57,7 +57,6 @@ export default async function ProfilePage() {
             communityId={communityId}
             initialName={me.user.name}
             initialBio={me.user.bio}
-            initialAvailability={me.user.availability}
             initialInterests={me.user.interests}
             initialGoals={me.user.goals}
             initialActivityTags={me.user.activity_tags}

@@ -11,7 +11,6 @@ type Node = {
   id: string;
   name: string;
   groupLabel: string;
-  nodeRole: string;
   relationshipCount: number;
   tags: string[];
   bio?: string;

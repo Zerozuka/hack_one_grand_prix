@@ -5,31 +5,6 @@ import { signIn } from "next-auth/react";
 
 import { demoAccounts } from "@/lib/demo-accounts";
 
-function LoginIllustration() {
-  return (
-    <svg viewBox="0 0 520 360" className="h-full min-h-[280px] w-full">
-      <rect width="520" height="360" rx="34" fill="#eef6ff" />
-      <path d="M120 142 L236 198 L376 128 L404 236 L252 260 L120 142" fill="none" stroke="#cbd5e1" strokeWidth="5" />
-      <path d="M236 198 L404 236" fill="none" stroke="#2563eb" strokeWidth="8" strokeLinecap="round" />
-      {[
-        [120, 142, "#fb923c"],
-        [236, 198, "#2563eb"],
-        [376, 128, "#22c55e"],
-        [404, 236, "#f97316"],
-        [252, 260, "#64748b"],
-      ].map(([cx, cy, color]) => (
-        <g key={`${cx}-${cy}`}>
-          <circle cx={cx} cy={cy} r="34" fill="#ffffff" stroke={String(color)} strokeWidth="7" />
-          <circle cx={cx} cy={cy} r="12" fill={String(color)} />
-        </g>
-      ))}
-      <rect x="64" y="270" width="220" height="46" rx="23" fill="#ffffff" stroke="#bfdbfe" />
-      <text x="94" y="300" fill="#1e3a8a" fontSize="16" fontWeight="900" letterSpacing="4">
-        5 MIN SYNC
-      </text>
-    </svg>
-  );
-}
 
 export function LoginForm() {
   const [username, setUsername] = useState(demoAccounts[0]?.username ?? "");
@@ -64,7 +39,6 @@ export function LoginForm() {
   return (
     <div className="grid min-h-[calc(100vh-4rem)] items-center gap-8 lg:grid-cols-[minmax(0,1fr)_430px]">
       <section className="overflow-hidden rounded-xl border border-[#d8dee4] bg-white shadow-xl shadow-slate-200/70">
-        <div className="grid lg:grid-cols-[minmax(0,1fr)_430px]">
           <div className="p-7 md:p-10">
             <div className="flex items-center gap-3">
               <div className="grid h-11 w-11 place-items-center rounded-full bg-[#24292f] text-sm font-black tracking-[0.18em] text-white">
@@ -72,7 +46,7 @@ export function LoginForm() {
               </div>
               <div>
                 <p className="text-sm font-bold text-[#24292f]">Knowledge Mesh</p>
-                <p className="text-xs text-[#57606a]">SOS と 5分Sync の知見ネットワーク</p>
+                <p className="text-xs text-[#57606a]">わからないことをすぐ聞いて、議論できる学習コミュニティ</p>
               </div>
             </div>
 
@@ -80,13 +54,11 @@ export function LoginForm() {
               Sign in
             </p>
             <h1 className="mt-4 max-w-2xl text-4xl font-black leading-tight tracking-[-0.05em] md:text-6xl">
-              困った瞬間を、
-              <br />
-              5分の接続に変える。
+              議論で
+              <span className="text-[#1f883d]"> 理解が変わる。</span>
             </h1>
             <p className="mt-5 max-w-2xl text-base leading-8 text-[#57606a]">
-              SOS、知見ネットワーク、シラバスをひとつの場所で扱うためのログイン画面です。
-              デモでは下のアカウントを選ぶだけで入れます。
+              仲間と議論できる学習コミュニティ
             </p>
 
             <form onSubmit={handleSubmit} className="mt-8 max-w-xl rounded-xl border border-[#d8dee4] bg-[#f6f8fa] p-5">
@@ -120,7 +92,7 @@ export function LoginForm() {
                   disabled={pending}
                   className="rounded-md bg-[#1f883d] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#1a7f37] disabled:cursor-not-allowed disabled:bg-stone-400"
                 >
-                  {pending ? "ログイン中..." : "ダッシュボードへ入る"}
+                  {pending ? "ログイン中..." : "ログイン"}
                 </button>
                 {process.env.NEXT_PUBLIC_ENABLE_OIDC === "true" ? (
                   <button
@@ -135,16 +107,11 @@ export function LoginForm() {
                   href="/register"
                   className="text-sm font-semibold text-[#0969da] hover:underline"
                 >
-                  新規登録はこちら
+                  新規登録
                 </a>
               </div>
             </form>
           </div>
-
-          <div className="border-t border-[#d8dee4] bg-[#f6f8fa] p-5 lg:border-l lg:border-t-0">
-            <LoginIllustration />
-          </div>
-        </div>
       </section>
 
       <aside className="rounded-xl border border-[#d8dee4] bg-white p-5 shadow-xl shadow-slate-200/70">

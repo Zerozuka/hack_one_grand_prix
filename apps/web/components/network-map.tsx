@@ -7,7 +7,6 @@ type NetworkNode = {
   id: string;
   name: string;
   groupLabel: string;
-  nodeRole: string;
   relationshipCount: number;
 };
 
@@ -44,12 +43,7 @@ const palettes = {
     labelText: "#0f172a",
     mutedText: "#64748b",
     halo: "#60a5fa",
-    roles: {
-      bridge: "#f97316",
-      core: "#2563eb",
-      new: "#16a34a",
-      isolated: "#64748b",
-    },
+    node: "#64748b",
   },
   dark: {
     panel: "bg-[#0b1020] text-slate-50 border-slate-700",
@@ -62,22 +56,10 @@ const palettes = {
     labelText: "#f8fafc",
     mutedText: "#cbd5e1",
     halo: "#38bdf8",
-    roles: {
-      bridge: "#fb923c",
-      core: "#38bdf8",
-      new: "#4ade80",
-      isolated: "#94a3b8",
-    },
+    node: "#94a3b8",
   },
 } as const;
 
-function roleColor(role: string, theme: ThemeName) {
-  const roles = palettes[theme].roles;
-  if (role === "bridge" || role === "core" || role === "new" || role === "isolated") {
-    return roles[role];
-  }
-  return roles.isolated;
-}
 
 function initialLayout(nodes: NetworkNode[], selectedUserId: string): PositionedNode[] {
   const groups = [...new Set(nodes.map((node) => node.groupLabel))];
@@ -313,7 +295,7 @@ export function NetworkMap({
         </div>
       </div>
 
-      <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_220px]">
+      <div className="mt-4">
         <div className="overflow-hidden rounded-lg border border-current/10">
           <svg
             viewBox={`0 0 ${width} ${height}`}
@@ -370,7 +352,7 @@ export function NetworkMap({
                 const star = node.id === starUserId;
                 const starNeighbor = starNeighborIds.has(node.id);
                 const connected = connectedIds.has(node.id);
-                const color = roleColor(node.nodeRole, theme);
+                const color = star ? "#1f883d" : palette.node;
                 const labelW = labelWidth(node.name);
                 const labelX = clamp(node.x - labelW / 2, 18, width - labelW - 18);
                 const labelY = clamp(node.y + 22, 18, height - 58);
@@ -453,34 +435,6 @@ export function NetworkMap({
             </g>
           </svg>
         </div>
-
-        <aside className="rounded-lg border border-current/10 p-4">
-          <p className="text-xs uppercase tracking-[0.2em] opacity-60">Focus</p>
-          <h3 className="mt-2 text-lg font-semibold">{focusedNode?.name ?? "No node"}</h3>
-          <p className="mt-1 text-sm opacity-70">{focusedNode?.groupLabel}</p>
-
-          <div className="mt-5 grid gap-2">
-            {[
-              ["bridge", "Bridge"],
-              ["core", "Core"],
-              ["new", "New"],
-              ["isolated", "Isolated"],
-            ].map(([role, label]) => (
-              <div key={role} className="flex items-center justify-between rounded-md border border-current/10 px-3 py-2">
-                <span className="flex items-center gap-2 text-sm">
-                  <span
-                    className="h-2.5 w-2.5 rounded-full"
-                    style={{ background: roleColor(role, theme) }}
-                  />
-                  {label}
-                </span>
-                <span className="text-xs opacity-60">
-                  {nodes.filter((node) => node.nodeRole === role).length}
-                </span>
-              </div>
-            ))}
-          </div>
-        </aside>
       </div>
     </section>
   );

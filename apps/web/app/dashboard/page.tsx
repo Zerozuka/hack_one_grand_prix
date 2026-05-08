@@ -39,7 +39,6 @@ type DashboardData = {
     name: string;
     group_label: string;
     role_label: string;
-    node_role: string;
     bio: string;
     availability: string | null;
     interests: string[];
@@ -364,8 +363,8 @@ export default async function DashboardPage({
       home: "",
       help: activeSosCount,
       discussion: liveDiscussionCount,
-      "my-class": dashboard.users.length,
-      syllabus: courses.total,
+      "my-class": "",
+      syllabus: "",
     };
 
     return (
@@ -373,10 +372,7 @@ export default async function DashboardPage({
         <header className="sticky top-0 z-30 border-b border-[#d8dee4] bg-white/95 backdrop-blur">
           <div className="mx-auto max-w-[1440px] px-4 pt-4 md:px-8">
             <div className="flex flex-wrap items-center justify-between gap-4">
-              <div className="flex min-w-0 items-center gap-3">
-                <div className="grid h-10 w-10 place-items-center rounded-full bg-[#24292f] text-sm font-black tracking-[0.18em] text-white">
-                  KM
-                </div>
+              <a href="/profile" className="flex min-w-0 items-center gap-3 transition hover:opacity-80">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold text-[#24292f]">
                     {dashboard.community.name}
@@ -385,7 +381,6 @@ export default async function DashboardPage({
                     userId={me.user.id}
                     communityId={communityId}
                     name={me.user.name}
-                    roleLabel={me.user.role_label}
                     bio={me.user.bio}
                     availability={me.user.availability}
                     interests={me.user.interests}
@@ -393,7 +388,7 @@ export default async function DashboardPage({
                     activityTags={me.user.activity_tags}
                   />
                 </div>
-              </div>
+              </a>
 
               <div className="flex items-center gap-2">
                 <details className="relative">
@@ -475,13 +470,11 @@ export default async function DashboardPage({
                         Knowledge Mesh
                       </p>
                       <h1 className="mt-4 max-w-3xl text-4xl font-black leading-tight tracking-[-0.04em] text-[#24292f] md:text-6xl">
-                        今日も誰かが困っている。
-                        <br />
-                        5分の会話で、
-                        <span className="text-[#1f883d]"> 理解が変わる。</span>
+                        議論で
+                        <span className="text-[#1f883d]"> 理解が変わる</span>
                       </h1>
                       <p className="mt-5 max-w-2xl text-base leading-8 text-[#57606a]">
-                        高校の教室みたいに、わからないことをすぐ聞いて、近くの仲間と議論できる学習コミュニティです。
+                        わからないことをすぐ聞いて、仲間と議論できる学習コミュニティ
                       </p>
                       <div className="mt-7 flex flex-wrap gap-3">
                         <a
@@ -530,14 +523,6 @@ export default async function DashboardPage({
                       accent: "bg-[#fff8c5] text-[#9a6700]",
                       badge: "My Class",
                     },
-                    {
-                      viewId: "syllabus" as ViewName,
-                      label: "Syllabus",
-                      value: courses.total,
-                      body: "登録科目数",
-                      accent: "bg-[#fbefff] text-[#8250df]",
-                      badge: "Syllabus",
-                    },
                   ].map((item) => (
                     <a
                       key={item.label}
@@ -562,103 +547,6 @@ export default async function DashboardPage({
                   ))}
                 </div>
               </section>
-
-              <section className="rounded-xl border border-[#d8dee4] bg-white p-5 shadow-sm shadow-slate-200/70">
-                <div className="flex flex-wrap items-end justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#57606a]">Next Action</p>
-                    <h2 className="mt-2 text-2xl font-black tracking-[-0.04em] text-[#24292f]">
-                      今すぐできること
-                    </h2>
-                  </div>
-                  <p className="max-w-xl text-sm leading-6 text-[#57606a]">
-                    迷ったら上から順に押せば, 「困りごと」から「5分Sync」まで自然に進めます.
-                  </p>
-                </div>
-                <div className="mt-5 grid gap-4 md:grid-cols-3">
-                  {[
-                    {
-                      title: "質問を出す",
-                      label: "Help",
-                      href: href({ view: "help" }),
-                      body: recommendedHelp
-                        ? `今動いている質問: ${helpTitle(recommendedHelp.topic)}`
-                        : "詰まっているところをタグ付きで投稿できます.",
-                      cta: "Helpを開く",
-                      tone: "border-[#1f883d] bg-[#f0fff4]",
-                    },
-                    {
-                      title: "進行中Discussionに参加",
-                      label: "Live",
-                      href: href({ view: "discussion" }),
-                      body: recommendedDiscussion
-                        ? `${recommendedDiscussion.title} / ${recommendedDiscussion.participant_names.length}名参加中`
-                        : "今は空いています. 自分で最初の議論を立てられます.",
-                      cta: "Discussionへ",
-                      tone: "border-[#0969da] bg-[#ddf4ff]",
-                    },
-                    {
-                      title: "自分に近い人を見る",
-                      label: "My Class",
-                      href: href({ view: "my-class" }),
-                      body: recommendedMate
-                        ? `${recommendedMate.name} さんと知見が近そうです`
-                        : "スキルツリーから近いクラスメイトを探せます.",
-                      cta: "My Classへ",
-                      tone: "border-[#bf8700] bg-[#fff8c5]",
-                    },
-                  ].map((item) => (
-                    <a
-                      key={item.title}
-                      href={item.href}
-                      className={cx("group rounded-xl border p-5 transition hover:-translate-y-0.5 hover:shadow-lg", item.tone)}
-                    >
-                      <span className="rounded-full bg-white/80 px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-[#57606a]">
-                        {item.label}
-                      </span>
-                      <h3 className="mt-4 text-xl font-black tracking-[-0.04em] text-[#24292f]">{item.title}</h3>
-                      <p className="mt-2 min-h-12 text-sm leading-6 text-[#57606a]">{item.body}</p>
-                      <p className="mt-4 text-sm font-bold text-[#24292f] group-hover:underline">{item.cta} →</p>
-                    </a>
-                  ))}
-                </div>
-              </section>
-
-              <section className="grid gap-4 md:grid-cols-3">
-                {[
-                  {
-                    viewId: "help" as ViewName,
-                    title: "Help",
-                    body: "困ったことを質問. タグで整理してみんなに聞こう.",
-                    illustration: <SosIllustration />,
-                  },
-                  {
-                    viewId: "discussion" as ViewName,
-                    title: "Discussion",
-                    body: "テーマを作って仲間と議論. トピックベースで深掘りできる.",
-                    illustration: <SyncIllustration />,
-                  },
-                  {
-                    viewId: "my-class" as ViewName,
-                    title: "My Class",
-                    body: "自分のネットワークとスキルツリーを確認しよう.",
-                    illustration: <CourseIllustration />,
-                  },
-                ].map((item) => (
-                  <a
-                    key={item.viewId}
-                    href={href({ view: item.viewId })}
-                    className="group overflow-hidden rounded-xl border border-[#d8dee4] bg-white shadow-sm shadow-slate-200/70 transition hover:-translate-y-1 hover:shadow-xl"
-                  >
-                    <div className="h-44 overflow-hidden">{item.illustration}</div>
-                    <div className="p-5">
-                      <p className="text-xl font-black tracking-[-0.03em] text-[#24292f]">{item.title}</p>
-                      <p className="mt-1 text-sm text-[#57606a]">{item.body}</p>
-                    </div>
-                  </a>
-                ))}
-              </section>
-
               <section className="grid gap-6 lg:grid-cols-2">
                 <article className="rounded-xl border border-[#d8dee4] bg-white p-6 shadow-sm shadow-slate-200/70">
                   <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#57606a]">
@@ -721,7 +609,6 @@ export default async function DashboardPage({
                 id: user.id,
                 name: user.name,
                 groupLabel: user.group_label,
-                nodeRole: user.node_role,
                 relationshipCount: user.relationship_count,
                 tags: [...user.interests, ...user.goals, ...user.activity_tags],
                 bio: user.bio,
