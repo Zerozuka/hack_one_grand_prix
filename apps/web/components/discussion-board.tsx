@@ -67,7 +67,15 @@ export function DiscussionBoard({
   }, [communityId, queryClient]);
 
   const activeTopics = topicsQuery.data.filter((t) => t.is_live);
+  const endedCount = topicsQuery.data.length - activeTopics.length;
   const alreadyInTopic = activeTopics.some((t) => t.participant_ids.includes(currentUserId));
+  const alreadyCreatedTopic = activeTopics.some((t) => t.creator_user_id === currentUserId);
+  const createBlocked = alreadyInTopic || alreadyCreatedTopic;
+  const createBlockedTitle = alreadyCreatedTopic
+    ? "既に自分が作成した議論があります"
+    : alreadyInTopic
+      ? "既に別の議論に参加中です"
+      : undefined;
 
   const createMutation = useMutation({
     mutationFn: async () => {
@@ -160,7 +168,7 @@ export function DiscussionBoard({
           value={newTopic}
           onChange={(e) => setNewTopic(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter" && newTopic.trim() && !createMutation.isPending) {
+            if (e.key === "Enter" && newTopic.trim() && !createMutation.isPending && !createBlocked) {
               createMutation.mutate();
             }
           }}
@@ -169,23 +177,37 @@ export function DiscussionBoard({
         />
         <button
           type="button"
-          disabled={!newTopic.trim() || createMutation.isPending || alreadyInTopic}
+          disabled={!newTopic.trim() || createMutation.isPending || createBlocked}
           onClick={() => createMutation.mutate()}
-          title={alreadyInTopic ? "既に別の議論に参加中です" : undefined}
+          title={createBlockedTitle}
           className="rounded-xl bg-[#1f883d] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#1a7f37] disabled:cursor-not-allowed disabled:bg-slate-400"
         >
-          {createMutation.isPending ? "作成中..." : alreadyInTopic ? "参加中" : "議論を始める"}
+          {createMutation.isPending ? "作成中..." : createBlocked ? "進行中" : "議論を始める"}
         </button>
       </div>
+      {createBlocked || endedCount > 0 ? (
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-semibold text-[#57606a]">
+          {createBlocked ? (
+            <span className="rounded-full bg-[#eaeef2] px-3 py-1">
+              {alreadyCreatedTopic
+                ? "自分が作成した進行中の議論は1件までです."
+                : "参加中の議論があるため, 新規作成は一時停止中です."}
+            </span>
+          ) : null}
+          {endedCount > 0 ? (
+            <span className="rounded-full bg-[#f6f8fa] px-3 py-1">終了済み {endedCount} 件は非表示です.</span>
+          ) : null}
+        </div>
+      ) : null}
 
       {/* Topic list */}
       <div className="mt-6 grid gap-3">
-        {topicsQuery.data.length === 0 ? (
+        {activeTopics.length === 0 ? (
           <div className="rounded-xl border border-[#d8dee4] bg-white px-4 py-5 text-sm text-[#57606a] shadow-sm">
             まだ議論トピックはありません. 最初のトピックを作成してみましょう.
           </div>
         ) : (
-          topicsQuery.data.map((topic) => {
+          activeTopics.map((topic) => {
             const isParticipant = topic.participant_ids.includes(currentUserId);
             const isCreator = topic.creator_user_id === currentUserId;
             const isExpanded = expandedId === topic.id;
@@ -235,7 +257,7 @@ export function DiscussionBoard({
                         </button>
                       ) : null}
 
-                      {topic.is_live && (isParticipant || isCreator) ? (
+                      {topic.is_live && isCreator ? (
                         <button
                           type="button"
                           onClick={() => endMutation.mutate(topic.id)}

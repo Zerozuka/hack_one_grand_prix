@@ -21,7 +21,6 @@ from app.domain import (
 )
 from app.models import (
     AuditLog,
-    ChatMessage,
     Community,
     CommunityMembership,
     Course,
@@ -579,13 +578,6 @@ def ensure_sos_chat(db: Session, request: SosRequest, responder_user_id: str) ->
     )
     db.add(chat)
     db.flush()
-    db.add(
-        ChatMessage(
-            chat_id=chat.id,
-            sender_user_id=responder_user_id,
-            body="5分だけ一緒に見ます。ここで状況を教えてください。",
-        )
-    )
     return chat
 
 

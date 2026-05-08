@@ -544,6 +544,14 @@ async def create_event(
         )
         if already_in_live:
             raise HTTPException(status_code=409, detail="Already participating in another live discussion")
+        already_created_live = db.scalar(
+            select(Event)
+            .where(Event.community_id == payload.community_id)
+            .where(Event.creator_user_id == context.user.id)
+            .where(Event.is_live.is_(True))
+        )
+        if already_created_live:
+            raise HTTPException(status_code=409, detail="Already created another live discussion")
     else:
         ensure_can_manage(context, payload.community_id)
     event = Event(
@@ -663,15 +671,7 @@ async def end_event(
     event = db.get(Event, event_id)
     if event is None:
         raise HTTPException(status_code=404, detail="Event not found")
-    is_creator = event.creator_user_id == context.user.id
-    is_participant = db.scalar(
-        select(EventParticipant).where(
-            EventParticipant.event_id == event_id,
-            EventParticipant.user_id == context.user.id,
-        )
-    ) is not None
-    can_manage = context.can_manage(event.community_id)
-    if not (is_creator or is_participant or can_manage):
+    if event.creator_user_id != context.user.id:
         raise HTTPException(status_code=403, detail="Forbidden")
     community_id = event.community_id
     event.is_live = False

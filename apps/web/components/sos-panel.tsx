@@ -60,6 +60,27 @@ async function fetchChat(requestId: string) {
   return (await response.json()) as HelpChat;
 }
 
+function formatChatTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const now = new Date();
+  const time = new Intl.DateTimeFormat("ja-JP", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(date);
+  const isToday =
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate();
+  if (isToday) return time;
+  const day = new Intl.DateTimeFormat("ja-JP", {
+    month: "numeric",
+    day: "numeric",
+  }).format(date);
+  return `${day} ${time}`;
+}
+
 export function SosPanel({
   communityId,
   initialItems,
@@ -74,22 +95,13 @@ export function SosPanel({
   const [tagInput, setTagInput] = useState("");
   const [questionTags, setQuestionTags] = useState<string[]>([]);
   const [activeTags, setActiveTags] = useState<Set<string>>(new Set());
-  const [message, setMessage] = useState("");
-  const [addedEdges, setAddedEdges] = useState<Set<string>>(new Set());
   const [aiNotification, setAiNotification] = useState<{
     sosId: string;
     topic: string;
     aiTags: string[];
     posterName: string;
   } | null>(null);
-  const [activeChatRequestId, setActiveChatRequestId] = useState<string | null>(
-    initialItems.find(
-      (item) =>
-        item.status === "resolved" &&
-        item.chat_id &&
-        (item.user_id === currentUserId || item.responder_user_id === currentUserId),
-    )?.id ?? null,
-  );
+  const [openThreadIds, setOpenThreadIds] = useState<Set<string>>(new Set());
   const tagInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -164,7 +176,7 @@ export function SosPanel({
       return response.json() as Promise<HelpItem>;
     },
     onSuccess: async (item) => {
-      setActiveChatRequestId(item.id);
+      setOpenThreadIds((prev) => new Set(prev).add(item.id));
       await queryClient.invalidateQueries({ queryKey: ["sos", communityId] });
       await queryClient.invalidateQueries({ queryKey: ["sos-chat", item.id] });
     },
@@ -181,53 +193,6 @@ export function SosPanel({
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["sos", communityId] });
-    },
-  });
-
-  const chatQuery = useQuery({
-    queryKey: ["sos-chat", activeChatRequestId],
-    queryFn: () => fetchChat(activeChatRequestId!),
-    enabled: Boolean(activeChatRequestId),
-    refetchInterval: 5_000,
-  });
-
-  const sendMessageMutation = useMutation({
-    mutationFn: async () => {
-      const response = await fetch(`/api/proxy/v1/sos/${activeChatRequestId}/chat/messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body: message }),
-      });
-      if (!response.ok) throw new Error(await response.text());
-      return response.json() as Promise<HelpChat>;
-    },
-    onSuccess: async () => {
-      setMessage("");
-      await queryClient.invalidateQueries({ queryKey: ["sos-chat", activeChatRequestId] });
-      await queryClient.invalidateQueries({ queryKey: ["sos", communityId] });
-    },
-  });
-
-  const addEdgeMutation = useMutation({
-    mutationFn: async ({ toUserId }: { toUserId: string }) => {
-      const response = await fetch("/api/proxy/v1/relationships", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          community_id: communityId,
-          to_user_id: toUserId,
-          type: "project",
-          strength: 3,
-        }),
-      });
-      if (!response.ok) throw new Error(await response.text());
-      return response.json();
-    },
-    onSuccess: () => {
-      if (activeChatRequestId) {
-        setAddedEdges((prev) => new Set(prev).add(activeChatRequestId));
-      }
-      queryClient.invalidateQueries({ queryKey: ["sos", communityId] });
     },
   });
 
@@ -258,6 +223,18 @@ export function SosPanel({
     }
     setTagInput("");
     tagInputRef.current?.focus();
+  }
+
+  function toggleThread(requestId: string) {
+    setOpenThreadIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(requestId)) {
+        next.delete(requestId);
+      } else {
+        next.add(requestId);
+      }
+      return next;
+    });
   }
 
   return (
@@ -423,6 +400,11 @@ export function SosPanel({
             const matched = item.matched_user_ids.includes(currentUserId);
             const isAuthor = item.user_id === currentUserId;
             const isOpen = item.status === "active";
+            const canViewThread =
+              !isOpen &&
+              Boolean(item.chat_id) &&
+              (item.user_id === currentUserId || item.responder_user_id === currentUserId);
+            const threadIsOpen = openThreadIds.has(item.id);
 
             return (
               <article
@@ -506,131 +488,197 @@ export function SosPanel({
                     (item.user_id === currentUserId || item.responder_user_id === currentUserId) ? (
                       <button
                         type="button"
-                        onClick={() => setActiveChatRequestId(item.id)}
+                        onClick={() => toggleThread(item.id)}
                         className={cx(
                           "rounded-full border px-3 py-1 text-xs font-bold transition",
-                          activeChatRequestId === item.id
-                            ? "border-[#0969da] text-[#0969da]"
-                            : "border-[#d0d7de] text-[#57606a] hover:border-[#0969da]",
+                          threadIsOpen
+                            ? "border-[#24292f] bg-[#24292f] text-white"
+                            : "border-[#0969da] bg-transparent text-[#0969da] hover:bg-[#ddf4ff]",
                         )}
                       >
-                        スレッドを開く
+                        {threadIsOpen ? "スレッドを閉じる" : "スレッドを開く"}
                       </button>
                     ) : null}
                   </div>
                 </div>
+
+                {canViewThread && threadIsOpen ? (
+                  <HelpThread
+                    communityId={communityId}
+                    requestId={item.id}
+                    currentUserId={currentUserId}
+                    onClose={() => toggleThread(item.id)}
+                  />
+                ) : null}
               </article>
             );
           })
         )}
       </div>
+    </section>
+  );
+}
 
-      {/* Thread/Chat */}
-      {activeChatRequestId ? (
-        <section className="mt-6 rounded-xl border border-[#d8dee4] bg-white p-4">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#0969da]">Thread</p>
-              <h3 className="mt-1 text-lg font-black tracking-[-0.03em] text-[#24292f]">
-                {chatQuery.data?.requester_name ?? "質問者"} × {chatQuery.data?.responder_name ?? "回答者"}
-              </h3>
-              <p className="mt-1 text-sm text-[#57606a]">
-                {chatQuery.data?.topic ?? "スレッドを読み込み中..."}
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="rounded-full bg-[#dafbe1] px-3 py-1 text-xs font-bold text-[#116329]">
-                Connected
-              </span>
-              <button
-                type="button"
-                onClick={() => setActiveChatRequestId(null)}
-                className="text-xs underline text-[#57606a]"
-              >
-                閉じる
-              </button>
-            </div>
+function HelpThread({
+  communityId,
+  requestId,
+  currentUserId,
+  onClose,
+}: {
+  communityId: string;
+  requestId: string;
+  currentUserId: string;
+  onClose: () => void;
+}) {
+  const queryClient = useQueryClient();
+  const [message, setMessage] = useState("");
+  const [edgeAdded, setEdgeAdded] = useState(false);
+
+  const chatQuery = useQuery({
+    queryKey: ["sos-chat", requestId],
+    queryFn: () => fetchChat(requestId),
+    refetchInterval: 5_000,
+  });
+
+  const sendMessageMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(`/api/proxy/v1/sos/${requestId}/chat/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body: message }),
+      });
+      if (!response.ok) throw new Error(await response.text());
+      return response.json() as Promise<HelpChat>;
+    },
+    onSuccess: async () => {
+      setMessage("");
+      await queryClient.invalidateQueries({ queryKey: ["sos-chat", requestId] });
+      await queryClient.invalidateQueries({ queryKey: ["sos", communityId] });
+    },
+  });
+
+  const addEdgeMutation = useMutation({
+    mutationFn: async ({ toUserId }: { toUserId: string }) => {
+      const response = await fetch("/api/proxy/v1/relationships", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          community_id: communityId,
+          from_user_id: currentUserId,
+          to_user_id: toUserId,
+          type: "project",
+          strength: 3,
+        }),
+      });
+      if (!response.ok) throw new Error(await response.text());
+      return response.json();
+    },
+    onSuccess: () => {
+      setEdgeAdded(true);
+      queryClient.invalidateQueries({ queryKey: ["sos", communityId] });
+    },
+  });
+
+  const chat = chatQuery.data;
+  const otherUserId = chat
+    ? chat.requester_user_id === currentUserId
+      ? chat.responder_user_id
+      : chat.requester_user_id
+    : null;
+
+  return (
+    <section className="mt-4 rounded-xl border border-[#d8dee4] bg-[#f6f8fa] p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#0969da]">Thread</p>
+          <h3 className="mt-1 text-lg font-black tracking-[-0.03em] text-[#24292f]">
+            {chat?.requester_name ?? "質問者"} × {chat?.responder_name ?? "回答者"}
+          </h3>
+          <p className="mt-1 text-sm text-[#57606a]">
+            {chat?.topic ?? "スレッドを読み込み中..."}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="rounded-full bg-[#dafbe1] px-3 py-1 text-xs font-bold text-[#116329]">
+            Connected
+          </span>
+          <button type="button" onClick={onClose} className="text-xs underline text-[#57606a]">
+            閉じる
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-4 grid max-h-[320px] gap-3 overflow-y-auto pr-1">
+        {chatQuery.isError ? (
+          <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            スレッドを開けませんでした. 参加者のみ閲覧できます.
+          </p>
+        ) : null}
+        {chat?.messages.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-[#d0d7de] bg-white px-4 py-5 text-sm text-[#57606a]">
+            まだコメントはありません. ここから状況を共有できます.
           </div>
-
-          <div className="mt-4 grid max-h-[320px] gap-3 overflow-y-auto pr-1">
-            {chatQuery.isError ? (
-              <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                スレッドを開けませんでした. 参加者のみ閲覧できます.
-              </p>
-            ) : null}
-            {chatQuery.data?.messages.map((msg) => {
-              const mine = msg.sender_user_id === currentUserId;
-              return (
-                <article
-                  key={msg.id}
-                  className={cx(
-                    "max-w-[88%] rounded-2xl border px-4 py-3 shadow-sm",
-                    mine ? "justify-self-end" : "justify-self-start",
-                    mine
-                      ? "border-[#dafbe1] bg-[#dafbe1] text-[#116329]"
-                      : "border-[#d8dee4] bg-white text-[#24292f]",
-                  )}
-                >
-                  <p className="text-xs font-bold opacity-70">{msg.sender_name}</p>
-                  <p className="mt-1 text-sm leading-6">{msg.body}</p>
-                </article>
-              );
-            })}
-          </div>
-
-          <div className="mt-4 grid gap-2 md:grid-cols-[1fr_auto]">
-            <input
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey && message.trim()) {
-                  e.preventDefault();
-                  sendMessageMutation.mutate();
-                }
-              }}
-              placeholder="返信を入力..."
-              className="rounded-xl border border-[#d0d7de] bg-white px-4 py-3 text-sm text-[#24292f] outline-none transition placeholder:text-[#57606a] focus:border-[#0969da]"
-            />
-            <button
-              type="button"
-              disabled={!message.trim() || sendMessageMutation.isPending || chatQuery.isError}
-              onClick={() => sendMessageMutation.mutate()}
-              className="rounded-xl bg-[#1f883d] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#1a7f37] disabled:cursor-not-allowed disabled:bg-slate-400"
+        ) : null}
+        {chat?.messages.map((msg) => {
+          const mine = msg.sender_user_id === currentUserId;
+          return (
+            <article
+              key={msg.id}
+              className={cx(
+                "max-w-[88%] rounded-2xl border px-4 py-3 shadow-sm",
+                mine ? "justify-self-end" : "justify-self-start",
+                mine
+                  ? "border-[#dafbe1] bg-[#dafbe1] text-[#116329]"
+                  : "border-[#d8dee4] bg-white text-[#24292f]",
+              )}
             >
-              {sendMessageMutation.isPending ? "送信中..." : "送信"}
-            </button>
-          </div>
+              <div className="flex items-center justify-between gap-3 text-xs font-bold opacity-70">
+                <span>{msg.sender_name}</span>
+                <time dateTime={msg.created_at}>{formatChatTime(msg.created_at)}</time>
+              </div>
+              <p className="mt-1 text-sm leading-6">{msg.body}</p>
+            </article>
+          );
+        })}
+      </div>
 
-          {(() => {
-            const activeItem = helpQuery.data.find((item) => item.id === activeChatRequestId);
-            const chat = chatQuery.data;
-            const isResolved = activeItem?.status === "resolved";
-            const otherUserId = chat
-              ? chat.requester_user_id === currentUserId
-                ? chat.responder_user_id
-                : chat.requester_user_id
-              : null;
-            const alreadyAdded = activeChatRequestId ? addedEdges.has(activeChatRequestId) : false;
-            if (isResolved && otherUserId) {
-              return (
-                <button
-                  type="button"
-                  disabled={alreadyAdded || addEdgeMutation.isPending}
-                  onClick={() => addEdgeMutation.mutate({ toUserId: otherUserId })}
-                  className={cx(
-                    "mt-3 w-full rounded-xl border px-4 py-2 text-sm font-bold transition",
-                    alreadyAdded
-                      ? "cursor-not-allowed border-[#d0d7de] text-slate-400"
-                      : "border-[#0969da] text-[#0969da] hover:bg-[#ddf4ff]",
-                  )}
-                >
-                  {alreadyAdded ? "✓ コネクション追加済み" : "🔗 コネクションに追加する"}
-                </button>
-              );
+      <div className="mt-4 grid gap-2 md:grid-cols-[1fr_auto]">
+        <input
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey && message.trim()) {
+              e.preventDefault();
+              sendMessageMutation.mutate();
             }
-            return null;
-          })()}
-        </section>
+          }}
+          placeholder="コメントを入力"
+          className="rounded-xl border border-[#d0d7de] bg-white px-4 py-3 text-sm text-[#24292f] outline-none transition placeholder:text-[#57606a] focus:border-[#0969da]"
+        />
+        <button
+          type="button"
+          disabled={!message.trim() || sendMessageMutation.isPending || chatQuery.isError}
+          onClick={() => sendMessageMutation.mutate()}
+          className="rounded-xl bg-[#1f883d] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#1a7f37] disabled:cursor-not-allowed disabled:bg-slate-400"
+        >
+          {sendMessageMutation.isPending ? "送信中..." : "送信"}
+        </button>
+      </div>
+
+      {otherUserId ? (
+        <button
+          type="button"
+          disabled={edgeAdded || addEdgeMutation.isPending}
+          onClick={() => addEdgeMutation.mutate({ toUserId: otherUserId })}
+          className={cx(
+            "mt-3 w-full rounded-xl border px-4 py-2 text-sm font-bold transition",
+            edgeAdded
+              ? "cursor-not-allowed border-[#d0d7de] text-slate-400"
+              : "border-[#0969da] text-[#0969da] hover:bg-[#ddf4ff]",
+          )}
+        >
+          {edgeAdded ? "コネクション追加済み" : "コネクションに追加する"}
+        </button>
       ) : null}
     </section>
   );
