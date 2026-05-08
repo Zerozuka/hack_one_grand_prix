@@ -167,6 +167,15 @@ function normalizeView(value: string | undefined): ViewName {
   return views.some((v) => v.id === value) ? (value as ViewName) : "home";
 }
 
+function helpTitle(topic: string) {
+  return topic.split(/\n+/).map((line) => line.trim()).find(Boolean) ?? topic;
+}
+
+function overlapScore(sourceTags: string[], targetTags: string[]) {
+  const targets = new Set(targetTags.map((tag) => tag.toLowerCase()));
+  return sourceTags.filter((tag) => targets.has(tag.toLowerCase())).length;
+}
+
 async function loadDashboard(searchParams: SearchParams) {
   const params = await searchParams;
   const mode = typeof params.mode === "string" ? params.mode : "bridge";
@@ -285,6 +294,24 @@ export default async function DashboardPage({
       await loadDashboard(searchParams);
     const activeSosCount = dashboard.sos.filter((item) => item.status === "active").length;
     const liveDiscussionCount = dashboard.events.filter((event) => event.is_live).length;
+    const myTags = [...me.user.interests, ...me.user.goals, ...me.user.activity_tags];
+    const activeHelpItems = dashboard.sos.filter((item) => item.status === "active");
+    const recommendedHelp =
+      activeHelpItems.find((item) => overlapScore(item.tags, myTags) > 0) ?? activeHelpItems[0] ?? null;
+    const recommendedDiscussion =
+      dashboard.events.find((event) => event.is_live && !event.participant_ids.includes(me.user.id)) ??
+      dashboard.events.find((event) => event.is_live) ??
+      null;
+    const recommendedMate =
+      dashboard.recommendations[0]?.user ??
+      dashboard.users
+        .filter((user) => user.id !== me.user.id)
+        .map((user) => ({
+          user,
+          score: overlapScore([...user.interests, ...user.goals, ...user.activity_tags], myTags),
+        }))
+        .sort((a, b) => b.score - a.score)[0]?.user ??
+      null;
 
     const href = (next: {
       view?: ViewName;
@@ -305,6 +332,33 @@ export default async function DashboardPage({
         selectedUserId: next.selectedUserId ?? dashboard.selected_user.id,
       })}`;
     };
+
+    const notifications = [
+      ...dashboard.sos
+        .filter((item) => item.user_id === me.user.id && item.responder_name)
+        .map((item) => ({
+          id: `sos-response-${item.id}`,
+          title: "自分の質問に反応があります",
+          body: `${item.responder_name} さんが「${helpTitle(item.topic)}」を見ています`,
+          href: href({ view: "help" }),
+        })),
+      ...dashboard.sos
+        .filter((item) => item.status === "active" && item.user_id !== me.user.id && item.matched_user_ids.includes(me.user.id))
+        .map((item) => ({
+          id: `sos-match-${item.id}`,
+          title: "答えられそうな質問",
+          body: helpTitle(item.topic),
+          href: href({ view: "help" }),
+        })),
+      ...dashboard.events
+        .filter((event) => event.is_live && event.participant_ids.includes(me.user.id))
+        .map((event) => ({
+          id: `event-${event.id}`,
+          title: event.creator_user_id === me.user.id ? "自分のDiscussionが進行中" : "Discussionに招待されています",
+          body: event.title,
+          href: href({ view: "discussion" }),
+        })),
+    ].slice(0, 6);
 
     const tabCounts: Record<ViewName, string | number> = {
       home: "",
@@ -342,6 +396,35 @@ export default async function DashboardPage({
               </div>
 
               <div className="flex items-center gap-2">
+                <details className="relative">
+                  <summary className="flex cursor-pointer list-none items-center gap-2 rounded-md border border-[#d8dee4] bg-[#f6f8fa] px-3 py-2 text-xs font-semibold text-[#24292f] transition hover:bg-white">
+                    <span>通知</span>
+                    <span className="rounded-full bg-[#fd8c73] px-1.5 py-0.5 text-[10px] font-black text-white">
+                      {notifications.length}
+                    </span>
+                  </summary>
+                  <div className="absolute right-0 z-40 mt-2 w-80 rounded-xl border border-[#d8dee4] bg-white p-3 shadow-2xl">
+                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#57606a]">Notifications</p>
+                    <div className="mt-3 grid gap-2">
+                      {notifications.length === 0 ? (
+                        <p className="rounded-lg bg-[#f6f8fa] px-3 py-3 text-sm text-[#57606a]">
+                          まだ新しい通知はありません.
+                        </p>
+                      ) : (
+                        notifications.map((item) => (
+                          <a
+                            key={item.id}
+                            href={item.href}
+                            className="block rounded-lg border border-[#d8dee4] bg-[#f6f8fa] px-3 py-3 transition hover:border-[#0969da] hover:bg-[#ddf4ff]"
+                          >
+                            <p className="text-sm font-bold text-[#24292f]">{item.title}</p>
+                            <p className="mt-1 line-clamp-2 text-xs text-[#57606a]">{item.body}</p>
+                          </a>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </details>
                 {me.memberships.some(
                   (membership) =>
                     membership.role === "platform_admin" || membership.role === "community_manager",
@@ -480,6 +563,67 @@ export default async function DashboardPage({
                 </div>
               </section>
 
+              <section className="rounded-xl border border-[#d8dee4] bg-white p-5 shadow-sm shadow-slate-200/70">
+                <div className="flex flex-wrap items-end justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#57606a]">Next Action</p>
+                    <h2 className="mt-2 text-2xl font-black tracking-[-0.04em] text-[#24292f]">
+                      今すぐできること
+                    </h2>
+                  </div>
+                  <p className="max-w-xl text-sm leading-6 text-[#57606a]">
+                    迷ったら上から順に押せば, 「困りごと」から「5分Sync」まで自然に進めます.
+                  </p>
+                </div>
+                <div className="mt-5 grid gap-4 md:grid-cols-3">
+                  {[
+                    {
+                      title: "質問を出す",
+                      label: "Help",
+                      href: href({ view: "help" }),
+                      body: recommendedHelp
+                        ? `今動いている質問: ${helpTitle(recommendedHelp.topic)}`
+                        : "詰まっているところをタグ付きで投稿できます.",
+                      cta: "Helpを開く",
+                      tone: "border-[#1f883d] bg-[#f0fff4]",
+                    },
+                    {
+                      title: "進行中Discussionに参加",
+                      label: "Live",
+                      href: href({ view: "discussion" }),
+                      body: recommendedDiscussion
+                        ? `${recommendedDiscussion.title} / ${recommendedDiscussion.participant_names.length}名参加中`
+                        : "今は空いています. 自分で最初の議論を立てられます.",
+                      cta: "Discussionへ",
+                      tone: "border-[#0969da] bg-[#ddf4ff]",
+                    },
+                    {
+                      title: "自分に近い人を見る",
+                      label: "My Class",
+                      href: href({ view: "my-class" }),
+                      body: recommendedMate
+                        ? `${recommendedMate.name} さんと知見が近そうです`
+                        : "スキルツリーから近いクラスメイトを探せます.",
+                      cta: "My Classへ",
+                      tone: "border-[#bf8700] bg-[#fff8c5]",
+                    },
+                  ].map((item) => (
+                    <a
+                      key={item.title}
+                      href={item.href}
+                      className={cx("group rounded-xl border p-5 transition hover:-translate-y-0.5 hover:shadow-lg", item.tone)}
+                    >
+                      <span className="rounded-full bg-white/80 px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-[#57606a]">
+                        {item.label}
+                      </span>
+                      <h3 className="mt-4 text-xl font-black tracking-[-0.04em] text-[#24292f]">{item.title}</h3>
+                      <p className="mt-2 min-h-12 text-sm leading-6 text-[#57606a]">{item.body}</p>
+                      <p className="mt-4 text-sm font-bold text-[#24292f] group-hover:underline">{item.cta} →</p>
+                    </a>
+                  ))}
+                </div>
+              </section>
+
               <section className="grid gap-4 md:grid-cols-3">
                 {[
                   {
@@ -528,7 +672,7 @@ export default async function DashboardPage({
                       dashboard.sos.filter((s) => s.status === "active").slice(0, 3).map((item) => (
                         <div key={item.id} className="rounded-xl border border-[#d8dee4] bg-[#f6f8fa] p-3">
                           <p className="text-xs font-bold text-[#57606a]">{item.user_name}</p>
-                          <p className="mt-1 text-sm font-medium text-[#24292f]">{item.topic}</p>
+                          <p className="mt-1 text-sm font-medium text-[#24292f]">{helpTitle(item.topic)}</p>
                         </div>
                       ))
                     )}
@@ -581,6 +725,7 @@ export default async function DashboardPage({
                 relationshipCount: user.relationship_count,
                 tags: [...user.interests, ...user.goals, ...user.activity_tags],
                 bio: user.bio,
+                availability: user.availability,
                 interests: user.interests,
                 goals: user.goals,
                 activityTags: user.activity_tags,
@@ -597,6 +742,7 @@ export default async function DashboardPage({
               communityId={communityId}
               initialItems={dashboard.sos}
               currentUserId={me.user.id}
+              users={dashboard.users}
             />
           ) : null}
 

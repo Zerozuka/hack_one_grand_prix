@@ -15,6 +15,7 @@ type Node = {
   relationshipCount: number;
   tags: string[];
   bio?: string;
+  availability?: string | null;
   interests?: string[];
   goals?: string[];
   activityTags?: string[];
@@ -85,6 +86,11 @@ function ProfileModal({
           <span>
             <span className="font-semibold text-[#24292f]">{user.relationshipCount}</span> connections
           </span>
+          {user.availability ? (
+            <span className="rounded-full bg-[#dafbe1] px-2.5 py-0.5 text-xs font-bold text-[#116329]">
+              {user.availability}
+            </span>
+          ) : null}
           {isSelf ? (
             <span className="rounded-full bg-[#dafbe1] px-2.5 py-0.5 text-xs font-bold text-[#116329]">
               自分
@@ -93,12 +99,20 @@ function ProfileModal({
         </div>
 
         {!isSelf ? (
-          <a
-            href={`/dashboard?view=discussion&inviteUserId=${encodeURIComponent(user.id)}`}
-            className="mt-5 block rounded-xl bg-[#0969da] px-4 py-3 text-center text-sm font-bold text-white transition hover:bg-[#0550ae]"
-          >
-            この人とDiscussionを始める
-          </a>
+          <div className="mt-5 grid gap-2 sm:grid-cols-2">
+            <a
+              href="/dashboard?view=help"
+              className="block rounded-xl border border-[#d0d7de] px-4 py-3 text-center text-sm font-bold text-[#57606a] transition hover:border-[#0969da] hover:text-[#0969da]"
+            >
+              質問する
+            </a>
+            <a
+              href={`/dashboard?view=discussion&inviteUserId=${encodeURIComponent(user.id)}`}
+              className="block rounded-xl bg-[#0969da] px-4 py-3 text-center text-sm font-bold text-white transition hover:bg-[#0550ae]"
+            >
+              Discussionに呼ぶ
+            </a>
+          </div>
         ) : null}
       </div>
     </div>
@@ -120,14 +134,22 @@ export function MyClassPanel({
 }) {
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [profileUser, setProfileUser] = useState<Node | null>(null);
+  const [availabilityFilter, setAvailabilityFilter] = useState<"all" | "now" | "later" | "expert">("all");
 
-  const classmates = selectedTag
+  const baseClassmates = selectedTag
     ? nodes.filter(
         (node) =>
           node.id !== currentUserId &&
           node.tags.some((t) => t.toLowerCase() === selectedTag.toLowerCase()),
       )
     : nodes.filter((node) => node.id !== currentUserId);
+  const classmates = baseClassmates.filter((node) => {
+    if (availabilityFilter === "all") return true;
+    if (availabilityFilter === "now") return Boolean(node.availability?.match(/今|すぐ|平日|昼|午後|夜/));
+    if (availabilityFilter === "later") return Boolean(node.availability?.match(/あと|夜|土日/));
+    if (selectedTag) return node.tags.some((tag) => tag.toLowerCase() === selectedTag.toLowerCase());
+    return node.relationshipCount >= 3 || node.tags.length >= 4;
+  });
 
   const me = nodes.find((n) => n.id === currentUserId);
 
@@ -147,6 +169,28 @@ export function MyClassPanel({
               {selectedTag ? `「${selectedTag}」のクラスメイト` : "全クラスメイト"}
               <span className="ml-2 text-lg font-bold text-[#57606a]">{classmates.length}名</span>
             </h2>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {[
+                ["all", "すべて"],
+                ["now", "今いける"],
+                ["later", "あとでOK"],
+                ["expert", "詳しい人"],
+              ].map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setAvailabilityFilter(value as "all" | "now" | "later" | "expert")}
+                  className={cx(
+                    "rounded-full border px-3 py-1.5 text-xs font-bold transition",
+                    availabilityFilter === value
+                      ? "border-[#0969da] bg-[#0969da] text-white"
+                      : "border-[#d0d7de] bg-[#f6f8fa] text-[#57606a] hover:border-[#0969da] hover:text-[#0969da]",
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
             {classmates.length === 0 ? (
               <p className="mt-4 text-sm text-[#57606a]">
                 {selectedTag ? "このタグを持つクラスメイトはいません." : "クラスメイトはまだいません."}
@@ -154,34 +198,53 @@ export function MyClassPanel({
             ) : (
               <div className="mt-4 grid max-h-[480px] gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
                 {classmates.map((user) => (
-                  <button
+                  <article
                     key={user.id}
-                    type="button"
-                    onClick={() => setProfileUser(user)}
-                    className="w-full rounded-lg border border-[#d8dee4] bg-[#f6f8fa] p-3 text-left transition hover:border-[#0969da] hover:bg-[#f0f7ff]"
+                    className="rounded-lg border border-[#d8dee4] bg-[#f6f8fa] p-3 transition hover:border-[#0969da] hover:bg-[#f0f7ff]"
                   >
-                    <p className="text-sm font-bold text-[#24292f]">{user.name}</p>
-                    <p className="mt-0.5 text-xs text-[#57606a]">
-                      {user.groupLabel} · {user.relationshipCount} connections
-                    </p>
-                    {user.tags.length > 0 ? (
-                      <div className="mt-1.5 flex flex-wrap gap-1">
-                        {user.tags.slice(0, 3).map((tag) => (
-                          <span
-                            key={tag}
-                            className={cx(
-                              "rounded-full px-2 py-0.5 text-[11px] font-semibold",
-                              selectedTag && tag.toLowerCase() === selectedTag.toLowerCase()
-                                ? "bg-[#0969da] text-white"
-                                : "bg-[#eaeef2] text-[#57606a]",
-                            )}
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    ) : null}
-                  </button>
+                    <button type="button" onClick={() => setProfileUser(user)} className="w-full text-left">
+                      <p className="text-sm font-bold text-[#24292f]">{user.name}</p>
+                      <p className="mt-0.5 text-xs text-[#57606a]">
+                        {user.groupLabel} · {user.relationshipCount} connections
+                      </p>
+                      {user.availability ? (
+                        <p className="mt-1.5 inline-flex rounded-full bg-[#dafbe1] px-2 py-0.5 text-[11px] font-bold text-[#116329]">
+                          {user.availability}
+                        </p>
+                      ) : null}
+                      {user.tags.length > 0 ? (
+                        <div className="mt-1.5 flex flex-wrap gap-1">
+                          {user.tags.slice(0, 3).map((tag) => (
+                            <span
+                              key={tag}
+                              className={cx(
+                                "rounded-full px-2 py-0.5 text-[11px] font-semibold",
+                                selectedTag && tag.toLowerCase() === selectedTag.toLowerCase()
+                                  ? "bg-[#0969da] text-white"
+                                  : "bg-[#eaeef2] text-[#57606a]",
+                              )}
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
+                    </button>
+                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                      <a
+                        href="/dashboard?view=help"
+                        className="rounded-lg border border-[#d0d7de] bg-white px-3 py-2 text-center text-xs font-bold text-[#57606a] transition hover:border-[#0969da] hover:text-[#0969da]"
+                      >
+                        質問する
+                      </a>
+                      <a
+                        href={`/dashboard?view=discussion&inviteUserId=${encodeURIComponent(user.id)}`}
+                        className="rounded-lg bg-[#0969da] px-3 py-2 text-center text-xs font-bold text-white transition hover:bg-[#0550ae]"
+                      >
+                        Discussionに呼ぶ
+                      </a>
+                    </div>
+                  </article>
                 ))}
               </div>
             )}

@@ -36,6 +36,7 @@ type DiscussionMeta = {
   topicType: "question" | "study" | "project" | "review";
   detail: string;
   imageName: string | null;
+  imageUrl: string | null;
   suggestedReason: string | null;
 };
 
@@ -55,13 +56,41 @@ const locationCandidates = [
 
 const topicSuggestions = [
   "線形代数",
+  "線形代数 固有値",
+  "線形代数 固有ベクトル",
+  "線形代数 対角化",
+  "線形代数 行列式",
+  "線形代数 基底",
+  "線形代数 写像",
+  "線形代数 内積空間",
   "微分積分",
+  "微分積分 極限",
+  "微分積分 偏微分",
+  "微分積分 重積分",
+  "微分方程式",
   "確率統計",
+  "確率統計 期待値",
+  "確率統計 分散",
+  "確率統計 仮説検定",
+  "統計学 回帰分析",
   "情報基礎",
+  "情報基礎 論理回路",
+  "情報基礎 アルゴリズム",
   "物理学基礎",
+  "力学 運動方程式",
+  "電磁気学",
+  "熱力学",
   "Python実装",
+  "Python データ分析",
+  "Python 可視化",
+  "React実装",
+  "FastAPI実装",
   "データ構造",
+  "グラフ理論",
+  "最短経路",
   "英語プレゼン",
+  "レポート相談",
+  "実験レポート",
 ];
 
 function cx(...parts: Array<string | false | undefined>) {
@@ -76,6 +105,7 @@ function parseMeta(format: string): DiscussionMeta {
       topicType: parsed.topicType ?? "question",
       detail: parsed.detail ?? "",
       imageName: parsed.imageName ?? null,
+      imageUrl: parsed.imageUrl ?? null,
       suggestedReason: parsed.suggestedReason ?? null,
     };
   } catch {
@@ -84,6 +114,7 @@ function parseMeta(format: string): DiscussionMeta {
       topicType: "question",
       detail: "",
       imageName: null,
+      imageUrl: null,
       suggestedReason: null,
     };
   }
@@ -99,6 +130,20 @@ function recommendLocation(topic: string, invitedUsers: UserProfile[]) {
   if (/実装|Python|制作|プロジェクト|コード/.test(text)) return locationCandidates[2];
   if (invitedUsers.length >= 2) return locationCandidates[1];
   return locationCandidates[3];
+}
+
+function inferDiscussionTags(topic: DiscussionTopic, meta: DiscussionMeta, usersById: Map<string, UserProfile>) {
+  const text = `${topic.title} ${meta.detail}`.toLowerCase();
+  const participantTags = topic.participant_ids.flatMap((id) => {
+    const user = usersById.get(id);
+    return user ? [...user.interests, ...user.goals, ...user.activity_tags] : [];
+  });
+  const matchedTags = participantTags.filter((tag) => {
+    const lowerTag = tag.toLowerCase();
+    return text.includes(lowerTag) || lowerTag.includes(topic.title.trim().toLowerCase());
+  });
+  const suggestionTags = topicSuggestions.filter((suggestion) => text.includes(suggestion.toLowerCase()));
+  return [...new Set([...matchedTags, ...suggestionTags, ...participantTags.slice(0, 3)])].slice(0, 5);
 }
 
 async function fetchTopics(communityId: string) {
@@ -130,7 +175,9 @@ export function DiscussionBoard({
   const [topicType, setTopicType] = useState<DiscussionMeta["topicType"]>("question");
   const [detail, setDetail] = useState("");
   const [imageName, setImageName] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [inviteFilter, setInviteFilter] = useState("");
+  const [activeInviteTags, setActiveInviteTags] = useState<Set<string>>(new Set());
   const [selectedInviteIds, setSelectedInviteIds] = useState<string[]>(
     initialInviteUserId && initialInviteUserId !== currentUserId ? [initialInviteUserId] : [],
   );
@@ -180,6 +227,9 @@ export function DiscussionBoard({
   const activeTopics = topicsQuery.data.filter((t) => t.is_live);
   const usersById = new Map(users.map((user) => [user.id, user]));
   const invitedUsers = selectedInviteIds.map((id) => usersById.get(id)).filter(Boolean) as UserProfile[];
+  const allInviteTags = [
+    ...new Set(users.flatMap((user) => [...user.interests, ...user.goals, ...user.activity_tags]).filter(Boolean)),
+  ].slice(0, 18);
   const inviteNeedle = inviteFilter.trim().toLowerCase();
   const filteredInviteUsers = users
     .filter((user) => user.id !== currentUserId)
@@ -196,11 +246,19 @@ export function DiscussionBoard({
       ].join(" ").toLowerCase();
       return haystack.includes(inviteNeedle);
     })
+    .filter((user) => {
+      if (activeInviteTags.size === 0) return true;
+      const userTags = new Set([...user.interests, ...user.goals, ...user.activity_tags]);
+      return [...activeInviteTags].some((tag) => userTags.has(tag));
+    })
     .slice(0, 12);
+  const topicPrefix = newTopic.trim().toLowerCase();
   const matchedTopicSuggestions =
-    newTopic.trim().length > 0
-      ? topicSuggestions.filter((suggestion) => suggestion.includes(newTopic.trim()) && suggestion !== newTopic).slice(0, 4)
-      : topicSuggestions.slice(0, 4);
+    topicPrefix.length > 0
+      ? topicSuggestions
+          .filter((suggestion) => suggestion.toLowerCase().startsWith(topicPrefix) && suggestion !== newTopic)
+          .slice(0, 6)
+      : [];
   const suggestedLocation = recommendLocation(newTopic, invitedUsers);
   const endedCount = topicsQuery.data.length - activeTopics.length;
   const alreadyInTopic = activeTopics.some((t) => t.participant_ids.includes(currentUserId));
@@ -226,6 +284,7 @@ export function DiscussionBoard({
             topicType,
             detail,
             imageName,
+            imageUrl,
             suggestedReason: suggestedLocation.hint,
           }),
           participant_ids: selectedInviteIds,
@@ -241,6 +300,7 @@ export function DiscussionBoard({
       setLocation("");
       setDetail("");
       setImageName(null);
+      setImageUrl(null);
       setSelectedInviteIds([]);
       setTopicType("question");
       await queryClient.invalidateQueries({ queryKey: ["events", communityId] });
@@ -286,6 +346,26 @@ export function DiscussionBoard({
     setSelectedInviteIds((prev) =>
       prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId],
     );
+  }
+
+  function toggleInviteTag(tag: string) {
+    setActiveInviteTags((prev) => {
+      const next = new Set(prev);
+      if (next.has(tag)) {
+        next.delete(tag);
+      } else {
+        next.add(tag);
+      }
+      return next;
+    });
+  }
+
+  function attachImage(file: File | undefined) {
+    if (!file) return;
+    setImageName(file.name);
+    const reader = new FileReader();
+    reader.onload = () => setImageUrl(typeof reader.result === "string" ? reader.result : null);
+    reader.readAsDataURL(file);
   }
 
   function pushReaction(topicId: string, emoji: string) {
@@ -363,7 +443,7 @@ export function DiscussionBoard({
                   createMutation.mutate();
                 }
               }}
-              placeholder="トピック (例: 統計学の検定手法)"
+              placeholder="トピック"
               className="w-full rounded-xl border border-[#d0d7de] bg-white px-4 py-3 text-sm text-[#24292f] outline-none transition placeholder:text-[#57606a] focus:border-[#0969da]"
             />
             {matchedTopicSuggestions.length > 0 ? (
@@ -395,7 +475,7 @@ export function DiscussionBoard({
                   type="file"
                   accept="image/*"
                   className="hidden"
-                  onChange={(e) => setImageName(e.target.files?.[0]?.name ?? null)}
+                  onChange={(e) => attachImage(e.target.files?.[0])}
                 />
               </label>
               {imageName ? (
@@ -404,6 +484,13 @@ export function DiscussionBoard({
                 </span>
               ) : null}
             </div>
+            {imageUrl ? (
+              <img
+                src={imageUrl}
+                alt={imageName ?? "添付画像プレビュー"}
+                className="max-h-52 w-full rounded-xl border border-[#d8dee4] object-cover"
+              />
+            ) : null}
           </div>
 
           <div className="space-y-3">
@@ -420,9 +507,38 @@ export function DiscussionBoard({
                 placeholder="名前・学部・タグで絞り込み (例: 線形, Python)"
                 className="mt-3 w-full rounded-lg border border-[#d0d7de] bg-white px-3 py-2 text-xs text-[#24292f] outline-none transition placeholder:text-[#57606a] focus:border-[#0969da]"
               />
+              {allInviteTags.length > 0 ? (
+                <div className="mt-3 flex max-h-20 flex-wrap gap-1.5 overflow-y-auto pr-1">
+                  {allInviteTags.map((tag) => (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => toggleInviteTag(tag)}
+                      className={cx(
+                        "rounded-full border px-2.5 py-1 text-[11px] font-bold transition",
+                        activeInviteTags.has(tag)
+                          ? "border-[#0969da] bg-[#0969da] text-white"
+                          : "border-[#d0d7de] bg-[#f6f8fa] text-[#57606a] hover:border-[#0969da] hover:text-[#0969da]",
+                      )}
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                  {activeInviteTags.size > 0 ? (
+                    <button
+                      type="button"
+                      onClick={() => setActiveInviteTags(new Set())}
+                      className="px-2 text-[11px] font-bold text-[#57606a] underline"
+                    >
+                      クリア
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
               <div className="mt-3 grid max-h-36 gap-2 overflow-y-auto pr-1">
                 {filteredInviteUsers.map((user) => {
                   const selected = selectedInviteIds.includes(user.id);
+                  const visibleTags = [...user.interests, ...user.goals, ...user.activity_tags].slice(0, 3);
                   return (
                     <button
                       key={user.id}
@@ -437,6 +553,15 @@ export function DiscussionBoard({
                     >
                       <span className="block text-sm font-bold text-[#24292f]">{user.name}</span>
                       <span className="block text-xs text-[#57606a]">{user.group_label}</span>
+                      {visibleTags.length > 0 ? (
+                        <span className="mt-1 flex flex-wrap gap-1">
+                          {visibleTags.map((tag) => (
+                            <span key={tag} className="rounded-full bg-[#eaeef2] px-2 py-0.5 text-[10px] font-semibold text-[#57606a]">
+                              {tag}
+                            </span>
+                          ))}
+                        </span>
+                      ) : null}
                     </button>
                   );
                 })}
@@ -516,6 +641,9 @@ export function DiscussionBoard({
             const isExpanded = expandedId === topic.id;
             const meta = parseMeta(topic.format);
             const typeLabel = topicTypes.find((type) => type.id === meta.topicType)?.label ?? "質問";
+            const visibleTags = inferDiscussionTags(topic, meta, usersById);
+            const localThreadCount = threadMessages[topic.id]?.length ?? 0;
+            const activityLabel = localThreadCount > 0 ? "最終コメント: たった今" : `最終更新: ${topic.time_label}`;
 
             return (
               <article key={topic.id} className="rounded-xl border border-[#d8dee4] bg-white shadow-sm">
@@ -544,12 +672,31 @@ export function DiscussionBoard({
                       >
                         {topic.title}
                       </button>
-                      <p className="mt-1 text-xs text-[#57606a]">
-                        {topic.location ? `📍 ${topic.location} / ` : ""}
-                        {topic.participant_names.length > 0
-                          ? `参加者: ${topic.participant_names.join(", ")} (${topic.participant_names.length}名)`
-                          : "参加者なし"}
-                      </p>
+                      <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-bold text-[#57606a]">
+                        <span className="rounded-full bg-[#f6f8fa] px-2.5 py-1">
+                          場所: {topic.location ?? "未定"}
+                        </span>
+                        <span className="rounded-full bg-[#f6f8fa] px-2.5 py-1">
+                          参加: {topic.participant_names.length}名
+                        </span>
+                        <span className="rounded-full bg-[#f6f8fa] px-2.5 py-1">
+                          {activityLabel}
+                        </span>
+                      </div>
+                      {visibleTags.length > 0 ? (
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {visibleTags.map((tag) => (
+                            <span key={tag} className="rounded-full bg-[#eaeef2] px-2.5 py-0.5 text-[11px] font-semibold text-[#57606a]">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
+                      {topic.participant_names.length > 0 ? (
+                        <p className="mt-2 text-xs text-[#57606a]">
+                          参加者: {topic.participant_names.join(", ")}
+                        </p>
+                      ) : null}
                     </div>
 
                     <div className="flex shrink-0 items-center gap-2">
@@ -612,6 +759,13 @@ export function DiscussionBoard({
                             </p>
                             {meta.imageName ? (
                               <p className="mt-2 text-xs font-semibold text-[#0969da]">添付画像: {meta.imageName}</p>
+                            ) : null}
+                            {meta.imageUrl ? (
+                              <img
+                                src={meta.imageUrl}
+                                alt={meta.imageName ?? "添付画像"}
+                                className="mt-3 max-h-72 w-full rounded-xl border border-[#d8dee4] object-cover"
+                              />
                             ) : null}
                             <div className="mt-3 flex flex-wrap gap-2">
                               {["👍", "🙋", "👀", "🔥"].map((emoji) => (

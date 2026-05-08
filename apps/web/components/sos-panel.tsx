@@ -19,6 +19,16 @@ type HelpItem = {
   matched_user_ids: string[];
 };
 
+type HelperUser = {
+  id: string;
+  name: string;
+  group_label: string;
+  availability: string | null;
+  interests: string[];
+  goals: string[];
+  activity_tags: string[];
+};
+
 type ChatMessage = {
   id: number;
   chat_id: string;
@@ -44,17 +54,19 @@ type HelpTopicParts = {
   title: string;
   detail: string;
   imageName: string | null;
+  imageUrl: string | null;
 };
 
 function cx(...parts: Array<string | false | undefined>) {
   return parts.filter(Boolean).join(" ");
 }
 
-function serializeHelpTopic(title: string, detail: string, imageName: string | null) {
+function serializeHelpTopic(title: string, detail: string, imageName: string | null, imageUrl: string | null) {
   return [
     title.trim(),
     detail.trim() ? `詳細: ${detail.trim()}` : "",
     imageName ? `添付画像: ${imageName}` : "",
+    imageUrl ? `添付画像URL: ${imageUrl}` : "",
   ].filter(Boolean).join("\n\n");
 }
 
@@ -63,10 +75,12 @@ function parseHelpTopic(topic: string): HelpTopicParts {
   const title = lines[0] ?? topic;
   const detailLine = lines.find((line) => line.startsWith("詳細:"));
   const imageLine = lines.find((line) => line.startsWith("添付画像:"));
+  const imageUrlLine = lines.find((line) => line.startsWith("添付画像URL:"));
   return {
     title,
     detail: detailLine?.replace(/^詳細:\s*/, "") ?? "",
     imageName: imageLine?.replace(/^添付画像:\s*/, "") ?? null,
+    imageUrl: imageUrlLine?.replace(/^添付画像URL:\s*/, "") ?? null,
   };
 }
 
@@ -135,20 +149,22 @@ export function SosPanel({
   communityId,
   initialItems,
   currentUserId,
+  users,
 }: {
   communityId: string;
   initialItems: HelpItem[];
   currentUserId: string;
+  users: HelperUser[];
 }) {
   const queryClient = useQueryClient();
   const [topic, setTopic] = useState("");
   const [detail, setDetail] = useState("");
   const [imageName, setImageName] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [tagInput, setTagInput] = useState("");
   const [questionTags, setQuestionTags] = useState<string[]>([]);
   const [activeTags, setActiveTags] = useState<Set<string>>(new Set());
   const [helpSearch, setHelpSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "resolved">("all");
   const [aiNotification, setAiNotification] = useState<{
     sosId: string;
     topic: string;
@@ -206,7 +222,7 @@ export function SosPanel({
       const response = await fetch("/api/proxy/v1/sos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ community_id: communityId, topic: serializeHelpTopic(topic, detail, imageName), tags: questionTags }),
+        body: JSON.stringify({ community_id: communityId, topic: serializeHelpTopic(topic, detail, imageName, imageUrl), tags: questionTags }),
       });
       if (!response.ok) throw new Error(await response.text());
       return response.json() as Promise<HelpItem>;
@@ -215,6 +231,7 @@ export function SosPanel({
       setTopic("");
       setDetail("");
       setImageName(null);
+      setImageUrl(null);
       setQuestionTags([]);
       setTagInput("");
       await queryClient.invalidateQueries({ queryKey: ["sos", communityId] });
@@ -254,16 +271,38 @@ export function SosPanel({
 
   const openCount = helpQuery.data.filter((item) => item.status === "active").length;
   const allTags = [...new Set(helpQuery.data.flatMap((item) => item.tags))];
+  const intentTokens = [
+    ...questionTags,
+    tagInput,
+    ...topic.split(/[\s　,、]+/),
+  ].map((token) => token.trim().toLowerCase()).filter(Boolean);
+  const helperCandidates = users
+    .filter((user) => user.id !== currentUserId)
+    .map((user) => {
+      const userTags = [...user.interests, ...user.goals, ...user.activity_tags];
+      const matchedTags = userTags.filter((tag) => {
+        const lowerTag = tag.toLowerCase();
+        return intentTokens.some((token) => lowerTag.includes(token) || lowerTag.startsWith(token));
+      });
+      const nameHit = intentTokens.some((token) => user.name.toLowerCase().includes(token) || user.group_label.toLowerCase().includes(token));
+      return {
+        user,
+        matchedTags: [...new Set(matchedTags)].slice(0, 4),
+        score: matchedTags.length * 3 + (nameHit ? 1 : 0) + (user.availability ? 0.5 : 0),
+      };
+    })
+    .filter((candidate) => intentTokens.length > 0 && candidate.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3);
 
   const filteredItems = helpQuery.data.filter((item) => {
     const parsed = parseHelpTopic(item.topic);
     const matchesTags = activeTags.size === 0 || item.tags.some((t) => activeTags.has(t));
-    const matchesStatus = statusFilter === "all" || item.status === statusFilter;
     const needle = helpSearch.trim().toLowerCase();
     const matchesSearch =
       !needle ||
       [parsed.title, parsed.detail, item.user_name, ...item.tags].join(" ").toLowerCase().includes(needle);
-    return matchesTags && matchesStatus && matchesSearch;
+    return matchesTags && matchesSearch;
   });
 
   function toggleTag(tag: string) {
@@ -297,6 +336,24 @@ export function SosPanel({
       }
       return next;
     });
+  }
+
+  function attachImage(file: File | undefined) {
+    if (!file) return;
+    setImageName(file.name);
+    const reader = new FileReader();
+    reader.onload = () => setImageUrl(typeof reader.result === "string" ? reader.result : null);
+    reader.readAsDataURL(file);
+  }
+
+  function inviteHref(userId: string) {
+    const params = new URLSearchParams({
+      communityId,
+      view: "discussion",
+      inviteUserId: userId,
+      discussionTopic: topic.trim() || questionTags[0] || tagInput.trim() || "質問から相談",
+    });
+    return `/dashboard?${params.toString()}`;
   }
 
   return (
@@ -348,34 +405,13 @@ export function SosPanel({
       </div>
 
       {/* Multi-tag filter */}
-      <div className="mt-4 grid gap-2 md:grid-cols-[1fr_auto]">
+      <div className="mt-4 grid gap-2">
         <input
           value={helpSearch}
           onChange={(e) => setHelpSearch(e.target.value)}
           placeholder="質問を検索 (例: 線形, Python, 証明)"
           className="rounded-xl border border-[#d0d7de] bg-white px-4 py-2.5 text-sm text-[#24292f] outline-none transition placeholder:text-[#57606a] focus:border-[#0969da]"
         />
-        <div className="flex gap-2">
-          {[
-            ["all", "すべて"],
-            ["active", "Open"],
-            ["resolved", "Closed"],
-          ].map(([value, label]) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => setStatusFilter(value as "all" | "active" | "resolved")}
-              className={cx(
-                "rounded-xl border px-3 py-2 text-xs font-bold transition",
-                statusFilter === value
-                  ? "border-[#24292f] bg-[#24292f] text-white"
-                  : "border-[#d0d7de] bg-white text-[#57606a] hover:border-[#0969da] hover:text-[#0969da]",
-              )}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
       </div>
 
       {allTags.length > 0 ? (
@@ -422,7 +458,7 @@ export function SosPanel({
         <input
           value={topic}
           onChange={(e) => setTopic(e.target.value)}
-          placeholder="例: 線形代数の固有値の証明で詰まっています"
+          placeholder="質問タイトル"
           className="w-full rounded-xl border border-[#d0d7de] bg-white px-4 py-3 text-sm text-[#24292f] outline-none transition placeholder:text-[#57606a] focus:border-[#0969da]"
         />
 
@@ -466,6 +502,48 @@ export function SosPanel({
           ) : null}
         </div>
 
+        {helperCandidates.length > 0 ? (
+          <div className="rounded-xl border border-[#d8dee4] bg-[#f6f8fa] p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0969da]">Suggested Helpers</p>
+                <p className="mt-1 text-sm font-bold text-[#24292f]">助けてくれそうな人</p>
+              </div>
+              <span className="rounded-full bg-[#ddf4ff] px-2.5 py-1 text-[11px] font-bold text-[#0969da]">
+                {helperCandidates.length}人
+              </span>
+            </div>
+            <div className="mt-3 grid gap-2 md:grid-cols-3">
+              {helperCandidates.map(({ user, matchedTags }) => (
+                <article key={user.id} className="rounded-xl border border-[#d8dee4] bg-white p-3">
+                  <p className="text-sm font-black text-[#24292f]">{user.name}</p>
+                  <p className="mt-0.5 text-xs text-[#57606a]">{user.group_label}</p>
+                  {user.availability ? (
+                    <p className="mt-2 rounded-full bg-[#dafbe1] px-2.5 py-1 text-[11px] font-bold text-[#116329]">
+                      {user.availability}
+                    </p>
+                  ) : null}
+                  {matchedTags.length > 0 ? (
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {matchedTags.map((tag) => (
+                        <span key={tag} className="rounded-full bg-[#ddf4ff] px-2 py-0.5 text-[11px] font-semibold text-[#0969da]">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+                  <a
+                    href={inviteHref(user.id)}
+                    className="mt-3 block rounded-lg bg-[#0969da] px-3 py-2 text-center text-xs font-bold text-white transition hover:bg-[#0550ae]"
+                  >
+                    この人を呼んでDiscussion
+                  </a>
+                </article>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
         <textarea
           value={detail}
           onChange={(e) => setDetail(e.target.value)}
@@ -481,7 +559,7 @@ export function SosPanel({
               type="file"
               accept="image/*"
               className="hidden"
-              onChange={(e) => setImageName(e.target.files?.[0]?.name ?? null)}
+              onChange={(e) => attachImage(e.target.files?.[0])}
             />
           </label>
           {imageName ? (
@@ -490,6 +568,13 @@ export function SosPanel({
             </span>
           ) : null}
         </div>
+        {imageUrl ? (
+          <img
+            src={imageUrl}
+            alt={imageName ?? "添付画像プレビュー"}
+            className="max-h-52 w-full rounded-xl border border-[#d8dee4] object-cover"
+          />
+        ) : null}
 
         <div className="flex justify-end">
           <button
@@ -562,6 +647,13 @@ export function SosPanel({
                     ) : null}
                     {parsedTopic.imageName ? (
                       <p className="mt-2 text-xs font-semibold text-[#0969da]">添付画像: {parsedTopic.imageName}</p>
+                    ) : null}
+                    {parsedTopic.imageUrl ? (
+                      <img
+                        src={parsedTopic.imageUrl}
+                        alt={parsedTopic.imageName ?? "添付画像"}
+                        className="mt-3 max-h-64 w-full rounded-xl border border-[#d8dee4] object-cover"
+                      />
                     ) : null}
                     {tags.length > 0 ? (
                       <div className="mt-2 flex flex-wrap gap-1.5">
