@@ -626,7 +626,6 @@ export default async function DashboardPage({
               communityId={communityId}
               initialItems={dashboard.sos}
               currentUserId={me.user.id}
-              users={dashboard.users}
             />
           ) : null}
 

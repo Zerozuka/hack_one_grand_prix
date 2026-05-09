@@ -36,6 +36,8 @@ type DiscussionMeta = {
   imageName: string | null;
   imageUrl: string | null;
   suggestedReason: string | null;
+  scheduledAt?: string | null;
+  repeatWeekly?: boolean;
 };
 
 const topicTypes: Array<{ id: DiscussionMeta["topicType"]; label: string; body: string }> = [
@@ -49,7 +51,6 @@ const locationCandidates = [
   { name: "日吉図書館 1F ラーニングコモンズ", area: "静かめ", map: "H-1", hint: "証明・読解など集中したい話に向いています." },
   { name: "日吉食堂 奥テーブル", area: "集まりやすい", map: "H-2", hint: "5分Syncや軽い相談に集まりやすい場所です." },
   { name: "第4校舎 独立館 自習スペース", area: "ホワイトボード", map: "H-3", hint: "数式や図を描きながら議論しやすい場所です." },
-  { name: "日吉駅側 銀杏並木入口", area: "合流地点", map: "H-0", hint: "初対面でも待ち合わせしやすい場所です." },
 ];
 
 const topicSuggestions = [
@@ -105,6 +106,8 @@ function parseMeta(format: string): DiscussionMeta {
       imageName: parsed.imageName ?? null,
       imageUrl: parsed.imageUrl ?? null,
       suggestedReason: parsed.suggestedReason ?? null,
+      scheduledAt: parsed.scheduledAt ?? null,
+      repeatWeekly: parsed.repeatWeekly ?? false,
     };
   } catch {
     return {
@@ -114,6 +117,8 @@ function parseMeta(format: string): DiscussionMeta {
       imageName: null,
       imageUrl: null,
       suggestedReason: null,
+      scheduledAt: null,
+      repeatWeekly: false,
     };
   }
 }
@@ -127,21 +132,21 @@ function recommendLocation(topic: string, invitedUsers: UserProfile[]) {
   if (/証明|線形|解析|数学/.test(text)) return locationCandidates[0];
   if (/実装|Python|制作|プロジェクト|コード/.test(text)) return locationCandidates[2];
   if (invitedUsers.length >= 2) return locationCandidates[1];
-  return locationCandidates[3];
+  return locationCandidates[0];
 }
 
-function inferDiscussionTags(topic: DiscussionTopic, meta: DiscussionMeta, usersById: Map<string, UserProfile>) {
-  const text = `${topic.title} ${meta.detail}`.toLowerCase();
-  const participantTags = topic.participant_ids.flatMap((id) => {
-    const user = usersById.get(id);
-    return user ? [...user.interests, ...user.goals, ...user.activity_tags] : [];
-  });
-  const matchedTags = participantTags.filter((tag) => {
-    const lowerTag = tag.toLowerCase();
-    return text.includes(lowerTag) || lowerTag.includes(topic.title.trim().toLowerCase());
-  });
-  const suggestionTags = topicSuggestions.filter((suggestion) => text.includes(suggestion.toLowerCase()));
-  return [...new Set([...matchedTags, ...suggestionTags, ...participantTags.slice(0, 3)])].slice(0, 5);
+function formatScheduleLabel(value: string, repeatWeekly: boolean) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "予定を設定";
+  const formatted = new Intl.DateTimeFormat("ja-JP", {
+    month: "numeric",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    weekday: "short",
+  }).format(date);
+  return repeatWeekly ? `${formatted} から毎週` : formatted;
 }
 
 async function fetchTopics(communityId: string) {
@@ -172,6 +177,9 @@ export function DiscussionBoard({
   const [location, setLocation] = useState("");
   const [topicType, setTopicType] = useState<DiscussionMeta["topicType"]>("question");
   const [detail, setDetail] = useState("");
+  const [createMode, setCreateMode] = useState<"live" | "scheduled">("live");
+  const [scheduledAt, setScheduledAt] = useState("");
+  const [repeatWeekly, setRepeatWeekly] = useState(false);
   const [imageName, setImageName] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [inviteFilter, setInviteFilter] = useState("");
@@ -182,7 +190,6 @@ export function DiscussionBoard({
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showEnded, setShowEnded] = useState(false);
   const [profileUser, setProfileUser] = useState<UserProfile | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const [reactions, setReactions] = useState<Record<string, string[]>>({});
   const [threadDrafts, setThreadDrafts] = useState<Record<string, string>>({});
   const [threadMessages, setThreadMessages] = useState<Record<string, Array<{ id: string; userId: string; body: string }>>>({});
@@ -224,7 +231,16 @@ export function DiscussionBoard({
   }, [initialTopic]);
 
   const activeTopics = topicsQuery.data.filter((t) => t.is_live);
-  const endedTopics = topicsQuery.data.filter((t) => !t.is_live);
+  const scheduledTopics = topicsQuery.data.filter((t) => {
+    if (t.is_live) return false;
+    const meta = parseMeta(t.format);
+    return Boolean(meta.scheduledAt);
+  });
+  const endedTopics = topicsQuery.data.filter((t) => {
+    if (t.is_live) return false;
+    const meta = parseMeta(t.format);
+    return !meta.scheduledAt;
+  });
   const usersById = new Map(users.map((user) => [user.id, user]));
   const invitedUsers = selectedInviteIds.map((id) => usersById.get(id)).filter(Boolean) as UserProfile[];
   const allInviteTags = [
@@ -259,10 +275,10 @@ export function DiscussionBoard({
           .slice(0, 6)
       : [];
   const suggestedLocation = recommendLocation(newTopic, invitedUsers);
-  const endedCount = topicsQuery.data.length - activeTopics.length;
+  const endedCount = endedTopics.length;
   const alreadyInTopic = activeTopics.some((t) => t.participant_ids.includes(currentUserId));
   const alreadyCreatedTopic = activeTopics.some((t) => t.creator_user_id === currentUserId);
-  const createBlocked = alreadyInTopic || alreadyCreatedTopic;
+  const createBlocked = createMode === "live" && (alreadyInTopic || alreadyCreatedTopic);
   const createBlockedTitle = alreadyCreatedTopic
     ? "既に自分が作成した議論があります"
     : alreadyInTopic
@@ -277,17 +293,19 @@ export function DiscussionBoard({
         body: JSON.stringify({
           community_id: communityId,
           title: newTopic,
-          time_label: "今すぐ",
+          time_label: createMode === "scheduled" ? formatScheduleLabel(scheduledAt, repeatWeekly) : "今すぐ",
           format: stringifyMeta({
-            style: "対面議論",
+            style: createMode === "scheduled" ? "予定Discussion" : "対面議論",
             topicType,
             detail,
             imageName,
             imageUrl,
             suggestedReason: suggestedLocation.hint,
+            scheduledAt: createMode === "scheduled" ? scheduledAt : null,
+            repeatWeekly: createMode === "scheduled" ? repeatWeekly : false,
           }),
           participant_ids: selectedInviteIds,
-          is_live: true,
+          is_live: createMode === "live",
           location: location.trim() || null,
         }),
       });
@@ -298,6 +316,9 @@ export function DiscussionBoard({
       setNewTopic("");
       setLocation("");
       setDetail("");
+      setScheduledAt("");
+      setRepeatWeekly(false);
+      setCreateMode("live");
       setImageName(null);
       setImageUrl(null);
       setSelectedInviteIds([]);
@@ -368,15 +389,13 @@ export function DiscussionBoard({
   }
 
   function pushReaction(topicId: string, emoji: string) {
-    setReactions((prev) => ({
-      ...prev,
-      [topicId]: [...(prev[topicId] ?? []), emoji],
-    }));
-  }
-
-  function notifyArrival(topic: DiscussionTopic) {
-    const names = topic.participant_names.filter(Boolean).join(", ");
-    setNotice(`${names || "参加者"} に「5分後に着きます」を送る準備ができました.`);
+    setReactions((prev) => {
+      const current = prev[topicId] ?? [];
+      const next = current.includes(emoji)
+        ? current.filter((item) => item !== emoji)
+        : [...current, emoji];
+      return { ...prev, [topicId]: next };
+    });
   }
 
   function postThreadMessage(topicId: string) {
@@ -416,6 +435,26 @@ export function DiscussionBoard({
       <div className="mt-6 rounded-xl border border-[#d8dee4] bg-[#f6f8fa] p-4">
         <div className="grid gap-3 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="space-y-3">
+            <div className="flex flex-wrap gap-2">
+              {[
+                ["live", "今すぐ"],
+                ["scheduled", "予定を立てる"],
+              ].map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setCreateMode(value as "live" | "scheduled")}
+                  className={cx(
+                    "rounded-full border px-3 py-1.5 text-xs font-bold transition",
+                    createMode === value
+                      ? "border-[#1f883d] bg-[#1f883d] text-white"
+                      : "border-[#d0d7de] bg-white text-[#57606a] hover:border-[#1f883d] hover:text-[#1f883d]",
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
             <div className="flex flex-wrap gap-2">
               {topicTypes.map((type) => (
                 <button
@@ -467,6 +506,28 @@ export function DiscussionBoard({
               rows={3}
               className="w-full resize-none rounded-xl border border-[#d0d7de] bg-white px-4 py-3 text-sm text-[#24292f] outline-none transition placeholder:text-[#57606a] focus:border-[#0969da]"
             />
+            {createMode === "scheduled" ? (
+              <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                <input
+                  type="datetime-local"
+                  value={scheduledAt}
+                  onChange={(e) => setScheduledAt(e.target.value)}
+                  className="rounded-xl border border-[#d0d7de] bg-white px-4 py-2.5 text-sm text-[#24292f] outline-none transition focus:border-[#0969da]"
+                />
+                <button
+                  type="button"
+                  onClick={() => setRepeatWeekly((prev) => !prev)}
+                  className={cx(
+                    "rounded-xl border px-4 py-2.5 text-xs font-bold transition",
+                    repeatWeekly
+                      ? "border-[#0969da] bg-[#ddf4ff] text-[#0969da]"
+                      : "border-[#d0d7de] bg-white text-[#57606a]",
+                  )}
+                >
+                  {repeatWeekly ? "毎週くり返す" : "1回だけ"}
+                </button>
+              </div>
+            ) : null}
             <div className="flex flex-wrap items-center gap-2">
               <label className="cursor-pointer rounded-full border border-[#d0d7de] bg-white px-3 py-1.5 text-xs font-bold text-[#57606a] transition hover:border-[#0969da] hover:text-[#0969da]">
                 画像を添付
@@ -571,7 +632,16 @@ export function DiscussionBoard({
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#57606a]">おすすめ場所</p>
-                  <p className="mt-1 text-sm font-black text-[#24292f]">{suggestedLocation.name}</p>
+                  <div className="mt-1 flex flex-wrap items-center gap-2">
+                    <p className="text-sm font-black text-[#24292f]">{suggestedLocation.name}</p>
+                    <button
+                      type="button"
+                      onClick={() => setLocation(suggestedLocation.name)}
+                      className="rounded-full border border-[#0969da] px-3 py-1 text-[11px] font-bold text-[#0969da] hover:bg-[#ddf4ff]"
+                    >
+                      ここにする
+                    </button>
+                  </div>
                   <p className="mt-1 text-xs leading-5 text-[#57606a]">{suggestedLocation.hint}</p>
                 </div>
                 <span className="rounded-full bg-[#eaeef2] px-2.5 py-1 text-xs font-bold text-[#57606a]">
@@ -581,20 +651,13 @@ export function DiscussionBoard({
               <div className="mt-3 grid h-24 place-items-center rounded-lg border border-dashed border-[#d0d7de] bg-[#f6f8fa] text-xs font-bold text-[#57606a]">
                 CAMPUS MAP / {suggestedLocation.area}
               </div>
-              <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto]">
+              <div className="mt-3">
                 <input
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
                   placeholder="場所 (例: 中央食堂, 図書館3F)"
                   className="rounded-xl border border-[#d0d7de] bg-white px-4 py-2.5 text-sm text-[#24292f] outline-none transition placeholder:text-[#57606a] focus:border-[#0969da]"
                 />
-                <button
-                  type="button"
-                  onClick={() => setLocation(suggestedLocation.name)}
-                  className="rounded-xl border border-[#0969da] px-4 py-2.5 text-xs font-bold text-[#0969da] hover:bg-[#ddf4ff]"
-                >
-                  ここにする
-                </button>
               </div>
             </div>
           </div>
@@ -603,22 +666,27 @@ export function DiscussionBoard({
         <div className="mt-3 flex justify-end">
           <button
             type="button"
-            disabled={!newTopic.trim() || createMutation.isPending || createBlocked}
+            disabled={!newTopic.trim() || createMutation.isPending || createBlocked || (createMode === "scheduled" && !scheduledAt)}
             onClick={() => createMutation.mutate()}
             title={createBlockedTitle}
             className="rounded-xl bg-[#1f883d] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#1a7f37] disabled:cursor-not-allowed disabled:bg-slate-400"
           >
-            {createMutation.isPending ? "作成中..." : createBlocked ? "進行中" : "議論を始める"}
+            {createMutation.isPending ? "作成中..." : createMode === "scheduled" ? "予定を作成" : createBlocked ? "進行中" : "議論を始める"}
           </button>
         </div>
       </div>
-      {createBlocked || endedCount > 0 ? (
+      {createBlocked || scheduledTopics.length > 0 || endedCount > 0 ? (
         <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-semibold text-[#57606a]">
           {createBlocked ? (
             <span className="rounded-full bg-[#eaeef2] px-3 py-1">
               {alreadyCreatedTopic
                 ? "自分が作成した進行中の議論は1件までです."
                 : "参加中の議論があるため, 新規作成は一時停止中です."}
+            </span>
+          ) : null}
+          {scheduledTopics.length > 0 ? (
+            <span className="rounded-full bg-[#fff8c5] px-3 py-1 text-[#9a6700]">
+              予定 {scheduledTopics.length} 件
             </span>
           ) : null}
           {endedCount > 0 ? (
@@ -646,7 +714,6 @@ export function DiscussionBoard({
             const isExpanded = expandedId === topic.id;
             const meta = parseMeta(topic.format);
             const typeLabel = topicTypes.find((type) => type.id === meta.topicType)?.label ?? "質問";
-            const visibleTags = inferDiscussionTags(topic, meta, usersById);
             const localThreadCount = threadMessages[topic.id]?.length ?? 0;
             const activityLabel = localThreadCount > 0 ? "最終コメント: たった今" : `最終更新: ${topic.time_label}`;
 
@@ -688,15 +755,6 @@ export function DiscussionBoard({
                           {activityLabel}
                         </span>
                       </div>
-                      {visibleTags.length > 0 ? (
-                        <div className="mt-2 flex flex-wrap gap-1.5">
-                          {visibleTags.map((tag) => (
-                            <span key={tag} className="rounded-full bg-[#eaeef2] px-2.5 py-0.5 text-[11px] font-semibold text-[#57606a]">
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      ) : null}
                       {topic.participant_names.length > 0 ? (
                         <p className="mt-2 text-xs text-[#57606a]">
                           参加者: {topic.participant_names.join(", ")}
@@ -725,16 +783,6 @@ export function DiscussionBoard({
                           className="rounded-full border border-[#d0d7de] px-3 py-1 text-xs font-bold text-[#57606a] transition hover:border-red-400 hover:text-red-600"
                         >
                           終了
-                        </button>
-                      ) : null}
-
-                      {isParticipant ? (
-                        <button
-                          type="button"
-                          onClick={() => notifyArrival(topic)}
-                          className="rounded-full border border-[#0969da] px-3 py-1 text-xs font-bold text-[#0969da] transition hover:bg-[#ddf4ff]"
-                        >
-                          5分後に着きます
                         </button>
                       ) : null}
 
@@ -778,13 +826,18 @@ export function DiscussionBoard({
                                   key={emoji}
                                   type="button"
                                   onClick={() => pushReaction(topic.id, emoji)}
-                                  className="rounded-full border border-[#d0d7de] bg-white px-3 py-1 text-sm transition hover:border-[#0969da]"
+                                  className={cx(
+                                    "rounded-full border px-3 py-1 text-sm transition",
+                                    (reactions[topic.id] ?? []).includes(emoji)
+                                      ? "border-[#0969da] bg-[#ddf4ff] text-[#0969da]"
+                                      : "border-[#d0d7de] bg-white hover:border-[#0969da]",
+                                  )}
                                 >
                                   {emoji}
                                 </button>
                               ))}
-                              {(reactions[topic.id] ?? []).map((emoji, index) => (
-                                <span key={`${emoji}-${index}`} className="rounded-full bg-[#ddf4ff] px-2.5 py-1 text-xs">
+                              {(reactions[topic.id] ?? []).map((emoji) => (
+                                <span key={emoji} className="rounded-full bg-[#ddf4ff] px-2.5 py-1 text-xs">
                                   {emoji}
                                 </span>
                               ))}
@@ -875,6 +928,46 @@ export function DiscussionBoard({
         )}
       </div>
 
+      {scheduledTopics.length > 0 ? (
+        <div className="mt-6">
+          <p className="mb-3 text-xs font-bold uppercase tracking-[0.22em] text-[#57606a]">
+            予定Discussion
+          </p>
+          <div className="grid gap-3">
+            {scheduledTopics.map((topic) => {
+              const meta = parseMeta(topic.format);
+              return (
+                <article key={topic.id} className="rounded-xl border border-[#d8dee4] bg-[#fffef8] shadow-sm">
+                  <div className="px-4 py-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="rounded-full bg-[#fff8c5] px-2.5 py-0.5 text-[11px] font-bold text-[#9a6700]">
+                            予定
+                          </span>
+                          {meta.repeatWeekly ? (
+                            <span className="rounded-full bg-[#eaeef2] px-2.5 py-0.5 text-[11px] font-bold text-[#57606a]">
+                              毎週
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="mt-1.5 text-base font-black text-[#24292f]">{topic.title}</p>
+                        <p className="mt-2 text-xs font-bold text-[#57606a]">
+                          {meta.scheduledAt ? formatScheduleLabel(meta.scheduledAt, Boolean(meta.repeatWeekly)) : topic.time_label}
+                        </p>
+                        <p className="mt-1 text-xs text-[#57606a]">
+                          場所: {topic.location ?? "未定"} / 参加予定: {topic.participant_names.length}名
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+
       {showEnded && endedTopics.length > 0 ? (
         <div className="mt-6">
           <p className="mb-3 text-xs font-bold uppercase tracking-[0.22em] text-[#57606a]">
@@ -948,19 +1041,6 @@ export function DiscussionBoard({
           <button
             type="button"
             onClick={() => setJoinError(null)}
-            className="ml-3 text-xs underline opacity-70 hover:opacity-100"
-          >
-            閉じる
-          </button>
-        </div>
-      ) : null}
-
-      {notice ? (
-        <div className="mt-4 rounded-xl border border-[#0969da] bg-[#ddf4ff] px-4 py-3 text-sm font-bold text-[#0550ae]">
-          {notice}
-          <button
-            type="button"
-            onClick={() => setNotice(null)}
             className="ml-3 text-xs underline opacity-70 hover:opacity-100"
           >
             閉じる

@@ -19,16 +19,6 @@ type HelpItem = {
   matched_user_ids: string[];
 };
 
-type HelperUser = {
-  id: string;
-  name: string;
-  group_label: string;
-  availability: string | null;
-  interests: string[];
-  goals: string[];
-  activity_tags: string[];
-};
-
 type ChatMessage = {
   id: number;
   chat_id: string;
@@ -92,25 +82,25 @@ async function fetchHelp(communityId: string) {
   return (await response.json()) as HelpItem[];
 }
 
+const defaultTagSuggestions = [
+  "線形代数",
+  "固有値",
+  "微分積分",
+  "微分方程式",
+  "確率統計",
+  "証明",
+  "レポート",
+  "Python",
+  "React",
+  "FastAPI",
+];
+
 async function fetchChat(requestId: string) {
   const response = await fetch(`/api/proxy/v1/sos/${requestId}/chat`, {
     cache: "no-store",
   });
   if (!response.ok) throw new Error(await response.text());
   return (await response.json()) as HelpChat;
-}
-
-function discussionHref(item: HelpItem) {
-  const parsed = parseHelpTopic(item.topic);
-  const params = new URLSearchParams({
-    view: "discussion",
-    communityId: item.community_id,
-    discussionTopic: parsed.title,
-  });
-  if (item.user_id) {
-    params.set("inviteUserId", item.user_id);
-  }
-  return `/dashboard?${params.toString()}`;
 }
 
 function discussionThreadHref(chat: HelpChat) {
@@ -149,16 +139,13 @@ export function SosPanel({
   communityId,
   initialItems,
   currentUserId,
-  users,
 }: {
   communityId: string;
   initialItems: HelpItem[];
   currentUserId: string;
-  users: HelperUser[];
 }) {
   const queryClient = useQueryClient();
   const [topic, setTopic] = useState("");
-  const [detail, setDetail] = useState("");
   const [imageName, setImageName] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [tagInput, setTagInput] = useState("");
@@ -222,14 +209,13 @@ export function SosPanel({
       const response = await fetch("/api/proxy/v1/sos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ community_id: communityId, topic: serializeHelpTopic(topic, detail, imageName, imageUrl), tags: questionTags }),
+        body: JSON.stringify({ community_id: communityId, topic: serializeHelpTopic(topic, "", imageName, imageUrl), tags: questionTags }),
       });
       if (!response.ok) throw new Error(await response.text());
       return response.json() as Promise<HelpItem>;
     },
     onSuccess: async () => {
       setTopic("");
-      setDetail("");
       setImageName(null);
       setImageUrl(null);
       setQuestionTags([]);
@@ -271,29 +257,13 @@ export function SosPanel({
 
   const openCount = helpQuery.data.filter((item) => item.status === "active").length;
   const allTags = [...new Set(helpQuery.data.flatMap((item) => item.tags))];
-  const intentTokens = [
-    ...questionTags,
-    tagInput,
-    ...topic.split(/[\s　,、]+/),
-  ].map((token) => token.trim().toLowerCase()).filter(Boolean);
-  const helperCandidates = users
-    .filter((user) => user.id !== currentUserId)
-    .map((user) => {
-      const userTags = [...user.interests, ...user.goals, ...user.activity_tags];
-      const matchedTags = userTags.filter((tag) => {
-        const lowerTag = tag.toLowerCase();
-        return intentTokens.some((token) => lowerTag.includes(token) || lowerTag.startsWith(token));
-      });
-      const nameHit = intentTokens.some((token) => user.name.toLowerCase().includes(token) || user.group_label.toLowerCase().includes(token));
-      return {
-        user,
-        matchedTags: [...new Set(matchedTags)].slice(0, 4),
-        score: matchedTags.length * 3 + (nameHit ? 1 : 0) + (user.availability ? 0.5 : 0),
-      };
-    })
-    .filter((candidate) => intentTokens.length > 0 && candidate.score > 0)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 3);
+  const tagNeedle = tagInput.trim().toLowerCase();
+  const tagCandidates =
+    tagNeedle.length > 0
+      ? [...new Set([...allTags, ...defaultTagSuggestions])]
+          .filter((tag) => tag.toLowerCase().startsWith(tagNeedle) && !questionTags.includes(tag))
+          .slice(0, 6)
+      : [];
 
   const filteredItems = helpQuery.data.filter((item) => {
     const parsed = parseHelpTopic(item.topic);
@@ -344,16 +314,6 @@ export function SosPanel({
     const reader = new FileReader();
     reader.onload = () => setImageUrl(typeof reader.result === "string" ? reader.result : null);
     reader.readAsDataURL(file);
-  }
-
-  function inviteHref(userId: string) {
-    const params = new URLSearchParams({
-      communityId,
-      view: "discussion",
-      inviteUserId: userId,
-      discussionTopic: topic.trim() || questionTags[0] || tagInput.trim() || "質問から相談",
-    });
-    return `/dashboard?${params.toString()}`;
   }
 
   return (
@@ -455,11 +415,12 @@ export function SosPanel({
 
       {/* New question form */}
       <div className="mt-6 space-y-3">
-        <input
+        <textarea
           value={topic}
           onChange={(e) => setTopic(e.target.value)}
-          placeholder="質問タイトル"
-          className="w-full rounded-xl border border-[#d0d7de] bg-white px-4 py-3 text-sm text-[#24292f] outline-none transition placeholder:text-[#57606a] focus:border-[#0969da]"
+          placeholder="何に困ってる？"
+          rows={3}
+          className="w-full resize-none rounded-xl border border-[#d0d7de] bg-white px-4 py-3 text-sm text-[#24292f] outline-none transition placeholder:text-[#57606a] focus:border-[#0969da]"
         />
 
         <div className="flex flex-wrap items-center gap-2">
@@ -501,56 +462,21 @@ export function SosPanel({
             </button>
           ) : null}
         </div>
-
-        {helperCandidates.length > 0 ? (
-          <div className="rounded-xl border border-[#d8dee4] bg-[#f6f8fa] p-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0969da]">Suggested Helpers</p>
-                <p className="mt-1 text-sm font-bold text-[#24292f]">助けてくれそうな人</p>
-              </div>
-              <span className="rounded-full bg-[#ddf4ff] px-2.5 py-1 text-[11px] font-bold text-[#0969da]">
-                {helperCandidates.length}人
-              </span>
-            </div>
-            <div className="mt-3 grid gap-2 md:grid-cols-3">
-              {helperCandidates.map(({ user, matchedTags }) => (
-                <article key={user.id} className="rounded-xl border border-[#d8dee4] bg-white p-3">
-                  <p className="text-sm font-black text-[#24292f]">{user.name}</p>
-                  <p className="mt-0.5 text-xs text-[#57606a]">{user.group_label}</p>
-                  {user.availability ? (
-                    <p className="mt-2 rounded-full bg-[#dafbe1] px-2.5 py-1 text-[11px] font-bold text-[#116329]">
-                      {user.availability}
-                    </p>
-                  ) : null}
-                  {matchedTags.length > 0 ? (
-                    <div className="mt-2 flex flex-wrap gap-1">
-                      {matchedTags.map((tag) => (
-                        <span key={tag} className="rounded-full bg-[#ddf4ff] px-2 py-0.5 text-[11px] font-semibold text-[#0969da]">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  ) : null}
-                  <a
-                    href={inviteHref(user.id)}
-                    className="mt-3 block rounded-lg bg-[#0969da] px-3 py-2 text-center text-xs font-bold text-white transition hover:bg-[#0550ae]"
-                  >
-                    この人を呼んでDiscussion
-                  </a>
-                </article>
-              ))}
-            </div>
+        {tagCandidates.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            <span className="self-center text-xs font-semibold text-[#57606a]">候補:</span>
+            {tagCandidates.map((tag) => (
+              <button
+                key={tag}
+                type="button"
+                onClick={() => addTag(tag)}
+                className="rounded-full border border-[#0969da] bg-[#ddf4ff] px-3 py-1 text-xs font-bold text-[#0969da] transition hover:bg-[#ccecff]"
+              >
+                {tag}
+              </button>
+            ))}
           </div>
         ) : null}
-
-        <textarea
-          value={detail}
-          onChange={(e) => setDetail(e.target.value)}
-          placeholder="詳細 (どこまで分かっていて、どこで詰まっているか)"
-          rows={3}
-          className="w-full resize-none rounded-xl border border-[#d0d7de] bg-white px-4 py-3 text-sm text-[#24292f] outline-none transition placeholder:text-[#57606a] focus:border-[#0969da]"
-        />
 
         <div className="flex flex-wrap items-center gap-2">
           <label className="cursor-pointer rounded-full border border-[#d0d7de] bg-white px-3 py-1.5 text-xs font-bold text-[#57606a] transition hover:border-[#0969da] hover:text-[#0969da]">
@@ -603,10 +529,8 @@ export function SosPanel({
             const matched = item.matched_user_ids.includes(currentUserId);
             const isAuthor = item.user_id === currentUserId;
             const isOpen = item.status === "active";
-            const canViewThread =
-              !isOpen &&
-              Boolean(item.chat_id) &&
-              (item.user_id === currentUserId || item.responder_user_id === currentUserId);
+            const isInThread = item.user_id === currentUserId || item.responder_user_id === currentUserId;
+            const canViewThread = Boolean(item.chat_id) && isInThread;
             const threadIsOpen = openThreadIds.has(item.id);
 
             return (
@@ -628,7 +552,7 @@ export function SosPanel({
                           isOpen ? "bg-[#dafbe1] text-[#116329]" : "bg-[#eaeef2] text-[#57606a]",
                         )}
                       >
-                        {isOpen ? "Open" : "Closed"}
+                        {isOpen ? "受付中" : "完了"}
                       </span>
                       {matched && isOpen ? (
                         <span className="rounded-full bg-[#ddf4ff] px-2.5 py-0.5 text-[11px] font-black text-[#0969da]">
@@ -688,7 +612,7 @@ export function SosPanel({
                       </button>
                     ) : null}
 
-                    {isOpen && !isAuthor ? (
+                    {isOpen && !isInThread ? (
                       <button
                         type="button"
                         onClick={() => resolveMutation.mutate(item.id)}
@@ -703,9 +627,7 @@ export function SosPanel({
                       </button>
                     ) : null}
 
-                    {!isOpen &&
-                    item.chat_id &&
-                    (item.user_id === currentUserId || item.responder_user_id === currentUserId) ? (
+                    {canViewThread ? (
                       <button
                         type="button"
                         onClick={() => toggleThread(item.id)}
