@@ -21,7 +21,6 @@ type UserProfile = {
   id: string;
   name: string;
   group_label: string;
-  role_label: string;
   bio: string;
   availability: string | null;
   interests: string[];
@@ -239,7 +238,6 @@ export function DiscussionBoard({
       const haystack = [
         user.name,
         user.group_label,
-        user.role_label,
         user.bio,
         ...user.interests,
         ...user.goals,
@@ -980,7 +978,7 @@ export function DiscussionBoard({
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#57606a]">Participant</p>
                 <h3 className="mt-1 text-2xl font-black tracking-[-0.04em] text-[#24292f]">{profileUser.name}</h3>
-                <p className="mt-1 text-sm text-[#57606a]">{profileUser.group_label} / {profileUser.role_label}</p>
+                <p className="mt-1 text-sm text-[#57606a]">{profileUser.group_label}</p>
               </div>
               <button
                 type="button"

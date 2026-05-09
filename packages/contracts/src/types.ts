@@ -2,8 +2,6 @@ export type RecommendationMode = "bridge" | "complementary" | "similar";
 
 export type UserRole = "platform_admin" | "community_manager" | "member";
 
-export type NodeRole = "core" | "new" | "bridge" | "isolated";
-
 export type RelationshipType = "known" | "talked" | "event" | "project";
 
 export interface CommunitySummary {
@@ -19,7 +17,6 @@ export interface UserSummary {
   communityId: string;
   name: string;
   group: string;
-  nodeRole: NodeRole;
   availability: string | null;
   bio: string;
   interests: string[];

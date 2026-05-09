@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import defaultdict, deque
 from dataclasses import dataclass
 
-from app.models import NodeRole, Relationship, User
+from app.models import Relationship, User
 
 SYNONYM_MAP = {
     "機械学習": ["ML", "深層学習", "ニューラルネット", "ニューラルネットワーク", "AI", "人工知能", "統計学習", "パターン認識"],
@@ -18,14 +18,6 @@ SYNONYM_MAP = {
     "最適化": ["凸最適化", "勾配降下法", "線形計画", "数理計画"],
     "シミュレーション": ["数値計算", "モンテカルロ", "有限要素法"],
     "信号処理": ["フーリエ変換", "FFT", "フィルタ", "スペクトル"],
-}
-
-
-ROLE_LABELS = {
-    NodeRole.core: "キーノード",
-    NodeRole.new: "新規参加",
-    NodeRole.bridge: "橋渡し候補",
-    NodeRole.isolated: "孤立ノード",
 }
 
 
@@ -102,11 +94,9 @@ def bridge_potential(user: User, users: list[User], relationships: list[Relation
         if candidate.id == user.id or relationship_exists(user.id, candidate.id, relationships):
             continue
         candidate_tags = user_tags[candidate.id]
-        cross_group = int(candidate.group_code != user.group_code)
         common_interests = len(intersection(current_tags["interests"], candidate_tags["interests"]))
         common_goals = len(intersection(current_tags["goals"], candidate_tags["goals"]))
-        role_boost = 2 if user.node_role == NodeRole.bridge else 0
-        score += cross_group * 4 + common_interests * 2 + common_goals * 2 + role_boost
+        score += common_interests * 2 + common_goals * 2
     return score
 
 
@@ -150,21 +140,16 @@ def recommendation_score(
     other = user_tags[candidate.id]
     common_interests = len(intersection(base["interests"], other["interests"]))
     common_goals = len(intersection(base["goals"], other["goals"]))
-    shared_availability = int((base_user.availability or "") == (candidate.availability or "") and bool(base_user.availability))
-    cross_group = int(base_user.group_code != candidate.group_code)
-    isolation_support = int(degree_of(base_user.id, neighbors) <= 1 or degree_of(candidate.id, neighbors) <= 1)
-    bridge_boost = int(candidate.node_role == NodeRole.bridge)
-    role_complement = int(base_user.node_role != candidate.node_role)
     base_expanded = set(expand_keywords(base["interests"]))
     candidate_expanded = expand_keywords(other["interests"])
     semantic_overlap = sum(1 for token in candidate_expanded if token in base_expanded)
     semantic_bonus = min(semantic_overlap, 6)
 
     if mode == "similar":
-        return common_interests * 16 + common_goals * 12 + shared_availability * 8 + isolation_support * 4 + semantic_bonus * 4
+        return common_interests * 16 + common_goals * 12 + semantic_bonus * 4
     if mode == "complementary":
-        return cross_group * 10 + role_complement * 12 + common_goals * 10 + common_interests * 6 + bridge_boost * 6
-    return cross_group * 16 + bridge_boost * 10 + common_goals * 8 + common_interests * 6 + isolation_support * 8 + semantic_bonus * 2
+        return common_goals * 14 + common_interests * 8 + semantic_bonus * 4
+    return common_interests * 12 + common_goals * 10 + semantic_bonus * 4
 
 
 def recommendation_reasons(base_user: User, candidate: User, user_tags: dict[str, dict[str, list[str]]], neighbors: dict[str, list[str]]) -> list[str]:
@@ -179,10 +164,6 @@ def recommendation_reasons(base_user: User, candidate: User, user_tags: dict[str
         reasons.append(f"学びたい方向が近い: {' / '.join(common_goals[:2])}")
     if base_user.group_code != candidate.group_code:
         reasons.append("別分野の知見を持っている")
-    if base_user.availability and base_user.availability == candidate.availability:
-        reasons.append(f"活動時間帯が近い: {base_user.availability}")
-    if degree_of(base_user.id, neighbors) <= 1 or degree_of(candidate.id, neighbors) <= 1:
-        reasons.append("孤立ノード解消につながる")
     return reasons[:4]
 
 

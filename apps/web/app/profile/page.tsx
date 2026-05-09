@@ -7,7 +7,6 @@ type MeData = {
   user: {
     id: string;
     name: string;
-    role_label: string;
     community_id: string;
     bio: string;
     availability: string | null;

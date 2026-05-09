@@ -14,7 +14,6 @@ type UserRow = {
   id: string;
   name: string;
   group_label: string;
-  role_label: string;
   points: number;
   relationship_count: number;
 };
@@ -100,7 +99,7 @@ export default async function AdminPage() {
                       <div>
                         <p className="text-sm font-semibold text-stone-900">{user.name}</p>
                         <p className="text-xs text-stone-500">
-                          {user.group_label} / {user.role_label}
+                          {user.group_label}
                         </p>
                       </div>
                       <div className="text-right text-sm text-stone-600">

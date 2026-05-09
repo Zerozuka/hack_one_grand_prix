@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models import NodeRole, RelationshipType, SosStatus, UserRole
+from app.models import RelationshipType, SosStatus, UserRole
 
 
 class CommunityOut(BaseModel):
@@ -19,8 +19,6 @@ class UserProfileOut(BaseModel):
     name: str
     group: str
     group_label: str
-    node_role: NodeRole
-    role_label: str
     availability: str | None
     bio: str
     interests: list[str]
@@ -39,14 +37,12 @@ class UserProfileUpdate(BaseModel):
     goals: list[str] = Field(default_factory=list)
     activity_tags: list[str] = Field(default_factory=list)
     group: str | None = None
-    node_role: NodeRole | None = None
 
 
 class UserCreate(BaseModel):
     community_id: str
     name: str
     group: str
-    node_role: NodeRole
     availability: str | None = None
     bio: str = ""
     interests: list[str] = Field(default_factory=list)

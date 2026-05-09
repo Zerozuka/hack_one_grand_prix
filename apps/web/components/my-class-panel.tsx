@@ -133,22 +133,25 @@ export function MyClassPanel({
 }) {
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [profileUser, setProfileUser] = useState<Node | null>(null);
-  const [availabilityFilter, setAvailabilityFilter] = useState<"all" | "now" | "later" | "expert">("all");
 
-  const baseClassmates = selectedTag
+  const connectedIds = new Set(
+    _edges.flatMap((edge) =>
+      edge.from_user_id === currentUserId
+        ? [edge.to_user_id]
+        : edge.to_user_id === currentUserId
+          ? [edge.from_user_id]
+          : [],
+    ),
+  );
+
+  const classmates = selectedTag
     ? nodes.filter(
         (node) =>
           node.id !== currentUserId &&
+          connectedIds.has(node.id) &&
           node.tags.some((t) => t.toLowerCase() === selectedTag.toLowerCase()),
       )
-    : nodes.filter((node) => node.id !== currentUserId);
-  const classmates = baseClassmates.filter((node) => {
-    if (availabilityFilter === "all") return true;
-    if (availabilityFilter === "now") return Boolean(node.availability?.match(/今|すぐ|平日|昼|午後|夜/));
-    if (availabilityFilter === "later") return Boolean(node.availability?.match(/あと|夜|土日/));
-    if (selectedTag) return node.tags.some((tag) => tag.toLowerCase() === selectedTag.toLowerCase());
-    return node.relationshipCount >= 3 || node.tags.length >= 4;
-  });
+    : nodes.filter((node) => node.id !== currentUserId && connectedIds.has(node.id));
 
   const me = nodes.find((n) => n.id === currentUserId);
 
@@ -168,28 +171,6 @@ export function MyClassPanel({
               {selectedTag ? `「${selectedTag}」のクラスメイト` : "全クラスメイト"}
               <span className="ml-2 text-lg font-bold text-[#57606a]">{classmates.length}名</span>
             </h2>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {[
-                ["all", "すべて"],
-                ["now", "今いける"],
-                ["later", "あとでOK"],
-                ["expert", "詳しい人"],
-              ].map(([value, label]) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setAvailabilityFilter(value as "all" | "now" | "later" | "expert")}
-                  className={cx(
-                    "rounded-full border px-3 py-1.5 text-xs font-bold transition",
-                    availabilityFilter === value
-                      ? "border-[#0969da] bg-[#0969da] text-white"
-                      : "border-[#d0d7de] bg-[#f6f8fa] text-[#57606a] hover:border-[#0969da] hover:text-[#0969da]",
-                  )}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
             {classmates.length === 0 ? (
               <p className="mt-4 text-sm text-[#57606a]">
                 {selectedTag ? "このタグを持つクラスメイトはいません." : "クラスメイトはまだいません."}
@@ -277,23 +258,6 @@ export function MyClassPanel({
             </section>
           ) : null}
 
-          <section className="rounded-xl border border-[#d8dee4] bg-white p-5 shadow-sm">
-            <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#57606a]">Legend</p>
-            <div className="mt-4 grid gap-3 text-sm">
-              {[
-                ["bg-orange-500", "Bridge", "別分野をつなぐ人"],
-                ["bg-blue-500", "Core", "中心にいる人"],
-                ["bg-green-500", "New", "新しく参加した人"],
-                ["bg-slate-500", "Isolated", "接続余地がある人"],
-              ].map(([dot, label, body]) => (
-                <div key={label} className="flex items-center gap-3">
-                  <span className={cx("h-3 w-3 shrink-0 rounded-full", dot)} />
-                  <span className="text-[#24292f]">{label}</span>
-                  <span className="text-[#57606a]">{body}</span>
-                </div>
-              ))}
-            </div>
-          </section>
         </aside>
       </section>
 

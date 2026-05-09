@@ -25,7 +25,6 @@ type DashboardData = {
     id: string;
     name: string;
     group_label: string;
-    role_label: string;
     bio: string;
     availability: string | null;
     interests: string[];
@@ -38,7 +37,6 @@ type DashboardData = {
     id: string;
     name: string;
     group_label: string;
-    role_label: string;
     bio: string;
     availability: string | null;
     interests: string[];
@@ -114,7 +112,6 @@ type MeData = {
   user: {
     id: string;
     name: string;
-    role_label: string;
     community_id: string;
     bio: string;
     availability: string | null;

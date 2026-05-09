@@ -386,7 +386,6 @@ def create_user(
         id=f"user-{uuid4()}",
         name=payload.name,
         group_code=payload.group,
-        node_role=payload.node_role,
         availability=payload.availability,
         bio=payload.bio,
     )
@@ -419,15 +418,28 @@ def list_tags(
     context: RequestContext = Depends(get_request_context),
     db: Session = Depends(get_db),
 ) -> list[dict[str, str | int]]:
-    from app.models import Tag, TagKind
-    query = select(Tag)
+    from app.models import Tag, TagKind, UserTag
+    kind_map = {"interest": TagKind.interest, "goal": TagKind.goal, "activity": TagKind.activity}
+    query = (
+        select(Tag, func.count(UserTag.id).label("user_count"))
+        .outerjoin(
+            UserTag,
+            (UserTag.tag_id == Tag.id) & (
+                UserTag.user_id.in_(
+                    select(CommunityMembership.user_id).where(
+                        CommunityMembership.community_id == context.community_id
+                    )
+                )
+            ),
+        )
+        .group_by(Tag.id)
+    )
     if kind:
-        kind_map = {"interest": TagKind.interest, "goal": TagKind.goal, "activity": TagKind.activity}
         if kind not in kind_map:
             raise HTTPException(status_code=400, detail=f"Invalid kind: {kind}")
         query = query.where(Tag.kind == kind_map[kind])
-    tags = db.scalars(query.order_by(Tag.kind, Tag.name)).all()
-    return [{"id": tag.id, "kind": tag.kind.value, "name": tag.name} for tag in tags]
+    rows = db.execute(query.order_by(func.count(UserTag.id).desc(), Tag.name)).all()
+    return [{"id": tag.id, "kind": tag.kind.value, "name": tag.name, "user_count": count} for tag, count in rows]
 
 
 @router.get("/users/{user_id}", response_model=UserProfileOut)
@@ -467,8 +479,6 @@ def update_user(
     if context.can_manage(community_id):
         if payload.group:
             user.group_code = payload.group
-        if payload.node_role:
-            user.node_role = payload.node_role
     from app.services import upsert_user_tags
     upsert_user_tags(db, user.id, TagKind.interest, payload.interests)
     upsert_user_tags(db, user.id, TagKind.goal, payload.goals)

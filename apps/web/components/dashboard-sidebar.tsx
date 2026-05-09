@@ -9,7 +9,6 @@ type SidebarUser = {
   id: string;
   name: string;
   group_label: string;
-  role_label: string;
   bio: string;
   badges: Array<{ icon: string; label: string; desc: string }>;
 };
@@ -83,7 +82,7 @@ export function DashboardSidebar({
             <div className="mt-3 rounded-[1.5rem] bg-white/5 p-4">
               <p className="text-lg font-semibold">{selectedUser.name}</p>
               <p className="mt-1 text-sm text-slate-300">
-                {selectedUser.group_label} / {selectedUser.role_label}
+                {selectedUser.group_label}
               </p>
               <p className="mt-3 text-sm leading-6 text-slate-300">{selectedUser.bio}</p>
               <div className="mt-4 flex flex-wrap gap-2">

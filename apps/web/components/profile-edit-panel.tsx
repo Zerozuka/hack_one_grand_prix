@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 
-type TagItem = { id: number; kind: string; name: string };
+type TagItem = { id: number; kind: string; name: string; user_count: number };
 
 function cx(...parts: Array<string | false | undefined>) {
   return parts.filter(Boolean).join(" ");
@@ -47,6 +47,10 @@ function TagPicker({
         .slice(0, 8)
     : [];
   const canAddNew = trimmed.length > 0 && !selected.includes(trimmed) && !suggestions.includes(trimmed);
+  const popularTags = allTags
+    .map((t) => t.name)
+    .filter((name) => !selected.includes(name))
+    .slice(0, 10);
 
   const add = (name: string) => {
     onChange([...selected, name]);
@@ -129,6 +133,24 @@ function TagPicker({
           </ul>
         ) : null}
       </div>
+
+      {popularTags.length > 0 ? (
+        <div className="mt-2">
+          <p className="mb-1.5 text-xs text-[#57606a]">人気 {label}</p>
+          <div className="flex flex-wrap gap-1.5">
+            {popularTags.map((name) => (
+              <button
+                key={name}
+                type="button"
+                onClick={() => add(name)}
+                className="rounded-full border border-[#d8dee4] bg-[#f6f8fa] px-3 py-1 text-xs font-medium text-[#57606a] transition hover:border-[#0969da] hover:bg-[#ddf4ff] hover:text-[#0969da]"
+              >
+                {name}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

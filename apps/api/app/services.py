@@ -8,7 +8,6 @@ from sqlalchemy import delete, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.domain import (
-    ROLE_LABELS,
     build_course_matches,
     build_introductions,
     build_recommendations,
@@ -28,7 +27,6 @@ from app.models import (
     CourseTopic,
     Event,
     EventParticipant,
-    NodeRole,
     Relationship,
     RelationshipType,
     SosChat,
@@ -152,8 +150,6 @@ def serialize_user(user: User, community_id: str, relationships: list[Relationsh
         name=user.name,
         group=user.group_code,
         group_label=group_label(user.group_code),
-        node_role=user.node_role,
-        role_label=ROLE_LABELS.get(user.node_role, user.node_role.value),
         availability=user.availability,
         bio=user.bio,
         interests=tags["interests"],
