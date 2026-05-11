@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Students post SOS requests, get matched by skill, chat, and escalate to in-person discussions.  
 Faculty can manage the knowledge graph, view analytics, and oversee community activity.
 
-Stack: **Next.js 15 + FastAPI + PostgreSQL**, fully containerized with Docker Compose.
+Stack: **Next.js App Router + FastAPI + PostgreSQL**, fully containerized with Docker Compose.
 
 ## Running the App
 
@@ -46,17 +46,17 @@ SEED_FORCE_RESET=true docker compose up --build
 
 ```
 apps/
-├── web/             # Next.js 15 (App Router) — frontend + BFF
+├── web/             # Next.js App Router — frontend + BFF
 │   ├── app/
-│   │   ├── dashboard/   # Main dashboard (overview, network, sos, sync, courses tabs)
+│   │   ├── dashboard/   # Main dashboard (home, help, discussion, my-class, syllabus tabs)
 │   │   ├── login/
 │   │   ├── register/
 │   │   ├── admin/
 │   │   └── api/proxy/   # BFF: proxies all /api/proxy/* → FastAPI with session auth
 │   ├── components/
-│   │   ├── network-map.tsx       # D3.js force-directed knowledge graph
-│   │   ├── sos-panel.tsx         # SOS requests + chat + in-person escalation
-│   │   ├── discussion-board.tsx  # Live discussion board (sync view)
+│   │   ├── network-map.tsx       # Custom SVG force-layout knowledge graph
+│   │   ├── sos-panel.tsx         # Help requests + chat + discussion request flow
+│   │   ├── discussion-board.tsx  # Live and scheduled discussion board
 │   │   ├── dashboard-sidebar.tsx
 │   │   └── course-import-panel.tsx
 │   └── lib/
@@ -69,7 +69,7 @@ apps/
     │   ├── services.py  # Business logic (query layer)
     │   ├── routers.py   # All API endpoints
     │   ├── deps.py      # Auth dependencies + request context
-    │   └── seed.py      # Demo data seeder
+    │   └── scripts/seed.py # Demo data seeder
     └── alembic/
         └── versions/    # 0001_initial → 0004_live_discussion
 packages/
@@ -147,8 +147,8 @@ GET             /v1/admin/users
 ## Frontend Patterns
 
 - **Data fetching**: TanStack Query with `useQuery` / `useMutation`. Dashboard fetches via `apiFetch()` server-side, passes as `initialData`.
-- **Polling**: SOS chat at 5s, SOS list at 15s, events/discussions at 30s.
-- **Theming**: Components accept `theme: "light" | "dark"` prop. Dashboard passes theme down based on active view.
+- **Polling**: SOS chat at 5s, SOS list at 15s, events/discussions at 8s.
+- **Theming**: `NetworkMap` can follow the system theme; the main dashboard uses a light GitHub-like interface.
 - **Auth**: `getAuthSession()` in server components; `useSession()` in client components.
 
 ## Dashboard Views
@@ -157,11 +157,11 @@ The dashboard (`/dashboard`) has 5 tab views controlled by `?view=` search param
 
 | View | Component | Description |
 |---|---|---|
-| `overview` | inline JSX | Stats, recommendations, ranking |
-| `network` | `NetworkMap` | D3.js knowledge graph |
-| `sos` | `SosPanel` | SOS requests + chat + escalation |
-| `sync` | `DiscussionBoard` | Live in-person discussion board |
-| `courses` | `CourseImportPanel` | Syllabus search + user matching |
+| `home` | inline JSX | Summary, next actions, notifications |
+| `help` | `SosPanel` | Help requests, tags, chat threads |
+| `discussion` | `DiscussionBoard` | Live and scheduled discussions |
+| `my-class` | `MyClassPanel` | Skill tree and classmates |
+| `syllabus` | `SyllabusPanel` | Syllabus search and course detail |
 
 ## Environment Variables
 
